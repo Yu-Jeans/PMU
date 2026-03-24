@@ -1,0 +1,6 @@
+../Core/Src/ADS131A04.cpp:12:1:ADS131A04IPBSR::ADS131A04IPBSR()	16	static
+../Core/Src/ADS131A04.cpp:17:1:ADS131A04IPBSR::~ADS131A04IPBSR()	16	static
+../Core/Src/ADS131A04.cpp:21:6:bool ADS131A04IPBSR::Init()	24	static
+../Core/Src/ADS131A04.cpp:41:6:bool ADS131A04IPBSR::Send_UNLOCK()	32	static
+../Core/Src/ADS131A04.cpp:50:6:bool ADS131A04IPBSR::GetRawValue()	32	static
+../Core/Src/ADS131A04.cpp:66:7:float ADS131A04IPBSR::GetVolt()	24	static

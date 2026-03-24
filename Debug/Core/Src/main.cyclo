@@ -1,0 +1,8 @@
+../Core/Src/main.cpp:86:5:int main()	1
+../Core/Src/main.cpp:138:6:void SystemClock_Config()	4
+../Core/Src/main.cpp:193:6:void MPU_Config()	1
+../Core/Src/main.cpp:224:6:void Error_Handler()	1
+../Core/Src/main.cpp:233:1:void __static_initialization_and_destruction_0()	1
+../Core/Src/main.cpp:233:1:void __static_initialization_and_destruction_1()	1
+../Core/Src/main.cpp:233:1:cpp)	1
+../Core/Src/main.cpp:233:1:cpp)	1
