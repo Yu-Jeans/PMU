@@ -6,14 +6,15 @@
  */
 
 #include "EEPROM.h"
-#include "cmsis_os.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
-extern I2C_HandleTypeDef hi2c1;
+extern I2C_HandleTypeDef hi2c4;
 
 // ✍️ 1. EEPROM에 캘리브레이션 32바이트 통째로 굽기
 bool EEPROM24FC064::SaveCalibration(CalibrationData_t* data){
     HAL_StatusTypeDef status = HAL_I2C_Mem_Write(
-        &hi2c1,
+        &hi2c4,
         devAddress,
         0x0000,
         I2C_MEMADD_SIZE_16BIT,
@@ -28,7 +29,7 @@ bool EEPROM24FC064::SaveCalibration(CalibrationData_t* data){
     	}
 
 
-    osDelay(10);
+    vTaskDelay(pdMS_TO_TICKS(10));
 //FreeRTOS 설정에 따라 1번 심장이 뛰는(1 Tick)데 걸리는 시간이 1ms일 수도 있고 10ms일 수도 있음. 실제 시간 10ms에 해당하는 틱수로 알아서 계산해 줌
 
     return true;
@@ -37,7 +38,7 @@ bool EEPROM24FC064::SaveCalibration(CalibrationData_t* data){
 // 📖 2. EEPROM에서 캘리브레이션 32바이트 통째로 읽어오기
 bool EEPROM24FC064::LoadCalibration(CalibrationData_t* data) {
     HAL_StatusTypeDef status = HAL_I2C_Mem_Read(
-        &hi2c1,
+        &hi2c4,
         devAddress,
         0x0000,
         I2C_MEMADD_SIZE_16BIT,

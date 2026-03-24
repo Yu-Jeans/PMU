@@ -8,7 +8,6 @@
 #ifndef INC_EEPROM_H_
 #define INC_EEPROM_H_
 
-#pragma once
 #include "main.h"
 
 // 🚨 패딩 방지 마법의 주문!

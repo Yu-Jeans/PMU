@@ -1,8 +1,9 @@
-../Core/Src/main.cpp:86:5:int main()	1
-../Core/Src/main.cpp:138:6:void SystemClock_Config()	4
-../Core/Src/main.cpp:193:6:void MPU_Config()	1
-../Core/Src/main.cpp:224:6:void Error_Handler()	1
-../Core/Src/main.cpp:233:1:void __static_initialization_and_destruction_0()	1
-../Core/Src/main.cpp:233:1:void __static_initialization_and_destruction_1()	1
-../Core/Src/main.cpp:233:1:cpp)	1
-../Core/Src/main.cpp:233:1:cpp)	1
+../Core/Src/main.cpp:90:5:int main()	1
+../Core/Src/main.cpp:150:6:void SystemClock_Config()	4
+../Core/Src/main.cpp:201:7:int __io_putchar(int)	1
+../Core/Src/main.cpp:211:6:void MPU_Config()	1
+../Core/Src/main.cpp:243:17:void Error_Handler()	1
+../Core/Src/main.cpp:252:1:void __static_initialization_and_destruction_0()	1
+../Core/Src/main.cpp:252:1:void __static_initialization_and_destruction_1()	1
+../Core/Src/main.cpp:252:1:cpp)	1
+../Core/Src/main.cpp:252:1:cpp)	1

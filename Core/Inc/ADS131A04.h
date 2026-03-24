@@ -8,17 +8,20 @@
 #ifndef INC_ADS131A04_H_
 #define INC_ADS131A04_H_
 
+#define ADC_CS_GPIO_Port GPIOB
+#define ADC_CS_Pin       GPIO_PIN_4
+
 #include "main.h"
 
 class ADS131A04IPBSR{
 private:
-
+	uint16_t SpiTransfer16(uint16_t command);
 public:
 	ADS131A04IPBSR();
 	~ADS131A04IPBSR();
 
 	bool Init();
-	bool GetRawValue();
+	uint16_t GetRawValue();
 	bool Send_UNLOCK();
 	float GetVolt();
 };
