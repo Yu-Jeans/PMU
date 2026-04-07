@@ -1,0 +1,12 @@
+../Core/Src/AD5522.cpp:13:1:AD5522::AD5522(SPI_HandleTypeDef*, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t)	24	static
+../Core/Src/AD5522.cpp:20:7:float AD5522::GetRsenseValue(uint8_t)	16	static
+../Core/Src/AD5522.cpp:30:6:bool AD5522::Init()	24	static
+../Core/Src/AD5522.cpp:50:6:void AD5522::Write29Bits(uint32_t)	24	static
+../Core/Src/AD5522.cpp:75:6:void AD5522::SetSystemDefault()	24	static
+../Core/Src/AD5522.cpp:90:6:void AD5522::SetChannelMode(uint8_t, bool, ForceMode, CurrentRange, MeasureMode)	32	static
+../Core/Src/AD5522.cpp:122:6:void AD5522::WriteDAC(Channel, DAC_Type, uint8_t, uint16_t)	24	static
+../Core/Src/AD5522.cpp:144:6:void AD5522::SetForceValue(Channel, uint8_t, float)	40	static
+../Core/Src/AD5522.cpp:149:6:void AD5522::SetClamp(Channel, DAC_Type, uint8_t, float)	40	static
+../Core/Src/AD5522.cpp:154:6:void AD5522::SetComparator(Channel, DAC_Type, uint8_t, float)	40	static
+../Core/Src/AD5522.cpp:159:10:uint16_t AD5522::CalculateVoltageToDAC(float)	24	static
+../Core/Src/AD5522.cpp:166:10:uint16_t AD5522::CalculateCurrentToDAC(uint8_t, float)	32	static

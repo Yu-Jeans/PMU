@@ -9,12 +9,24 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-extern I2C_HandleTypeDef hi2c4;
+EEPROM24FC064::EEPROM24FC064(I2C_HandleTypeDef* i2c, uint16_t addr)
+    : hi2c(i2c), devAddress(addr) {}
 
-// ✍️ 1. EEPROM에 캘리브레이션 32바이트 통째로 굽기
+bool EEPROM24FC064::Init() {
+
+    HAL_StatusTypeDef status = HAL_I2C_IsDeviceReady(hi2c, devAddress, 3, 10);
+
+    if (status == HAL_OK) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// 1. EEPROM에 캘리브레이션 32바이트 통째로 굽기
 bool EEPROM24FC064::SaveCalibration(CalibrationData_t* data){
     HAL_StatusTypeDef status = HAL_I2C_Mem_Write(
-        &hi2c4,
+        hi2c,
         devAddress,
         0x0000,
         I2C_MEMADD_SIZE_16BIT,
@@ -35,10 +47,10 @@ bool EEPROM24FC064::SaveCalibration(CalibrationData_t* data){
     return true;
 }
 
-// 📖 2. EEPROM에서 캘리브레이션 32바이트 통째로 읽어오기
+// 2. EEPROM에서 캘리브레이션 32바이트 통째로 읽어오기
 bool EEPROM24FC064::LoadCalibration(CalibrationData_t* data) {
     HAL_StatusTypeDef status = HAL_I2C_Mem_Read(
-        &hi2c4,
+        hi2c,
         devAddress,
         0x0000,
         I2C_MEMADD_SIZE_16BIT,

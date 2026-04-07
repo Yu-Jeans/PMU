@@ -39,7 +39,7 @@ extern "C" {
     void StartDefaultTask(void *argument);
     void MX_FREERTOS_Init(void);
 }
-extern PMU myPMU;
+extern PMU mySystem;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -120,11 +120,11 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
-	myPMU.Init();
+	mySystem.Init();
   /* Infinite loop */
 	for(;;)
 	  {
-	      myPMU.MeasureVolt();             // 전압 측정 및 출력
+		  mySystem.MeasureVolt();             // 전압 측정 및 출력
 	      vTaskDelay(pdMS_TO_TICKS(100));  // 100ms 대기 (다른 태스크에 CPU 양보)
 	  }
   /* USER CODE END StartDefaultTask */

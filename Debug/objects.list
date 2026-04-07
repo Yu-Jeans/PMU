@@ -1,3 +1,4 @@
+"./Core/Src/AD5522.o"
 "./Core/Src/ADS131A04.o"
 "./Core/Src/EEPROM.o"
 "./Core/Src/PMU.o"

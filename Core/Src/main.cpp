@@ -34,20 +34,6 @@
 /* USER CODE BEGIN PTD */
 
 
-class AD5522{
-private:
-
-public:
-	AD5522();
-	~AD5522();
-
-	void Init();
-	bool setFV(int Channel, double Voltage);
-	bool setFI(int Channel, double Voltage);
-	bool setFZ(int Channel);
-	bool GetVolt(int Channel, double *Voltage);
-	bool GetAmp(int Channel, double *Ampere);
-};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -63,7 +49,20 @@ public:
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-PMU myPMU;
+PMU mySystem(
+    // 1. ADC (ADS131A04)
+    &hspi2,
+	GPIOB, GPIO_PIN_9,
+
+    // 2. DAC (AD5522)
+    &hspi3,
+    GPIOA, GPIO_PIN_4,  // SYNC (CS 역할) 포트 및 핀
+    GPIOD, GPIO_PIN_8,   // BUSY 포트 및 핀
+    GPIOE, GPIO_PIN_14,   // RESET 포트 및 핀
+
+    // 3. EEPROM 재료
+    &hi2c4, 0xA0
+);
 
 extern I2C_HandleTypeDef hi2c4;
 extern SPI_HandleTypeDef hspi2;
@@ -135,6 +134,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+	/* 코드 예시
+	// 채널 0을 켭니다. 전압 출력(FV) 모드, 2mA 범위, 전류 측정(MI) 모드로 설정
+	pmu.SetChannelMode(AD5522::CH0, true, AD5522::FV_MODE, AD5522::RANGE_2mA, AD5522::MI_MODE);
+
+	// 채널 1과 2를 켭니다. 전류 출력(FI) 모드, 200uA 범위, 전압 측정(MV) 모드로 설정
+	pmu.SetChannelMode(AD5522::CH1 | AD5522::CH2, true, AD5522::FI_MODE, AD5522::RANGE_200uA, AD5522::MV_MODE);*/
 
     /* USER CODE END WHILE */
 

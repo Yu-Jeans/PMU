@@ -19,15 +19,13 @@ typedef struct {
 
 class EEPROM24FC064 {
 private:
+	I2C_HandleTypeDef* hi2c;
     uint16_t devAddress; // 아파트 주소 (0xA0)
 
 public:
-    EEPROM24FC064(uint16_t addr) : devAddress(addr) {}
-/* 아래와 동일
-EEPROM24FC064(uint16_t addr) {
-    devAddress = addr;
-}
-*/
+    EEPROM24FC064(I2C_HandleTypeDef* i2c, uint16_t addr);
+
+    bool Init();
     bool SaveCalibration(CalibrationData_t* data);
     bool LoadCalibration(CalibrationData_t* data);
 };

@@ -1,5 +1,4 @@
-../Core/Inc/EEPROM.h:25:5:EEPROM24FC064::EEPROM24FC064(uint16_t)	16	static
-../Core/Src/PMU.cpp:10:1:PMU::PMU()	16	static
-../Core/Src/PMU.cpp:16:1:PMU::~PMU()	16	static
-../Core/Src/PMU.cpp:20:6:void PMU::Init()	24	static
-../Core/Src/PMU.cpp:32:6:bool PMU::MeasureVolt()	24	static
+../Core/Src/PMU.cpp:10:1:PMU::PMU(SPI_HandleTypeDef*, GPIO_TypeDef*, uint16_t, SPI_HandleTypeDef*, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, I2C_HandleTypeDef*, uint16_t)	40	static
+../Core/Src/PMU.cpp:23:1:PMU::~PMU()	16	static
+../Core/Src/PMU.cpp:26:6:bool PMU::Init()	24	static
+../Core/Src/PMU.cpp:71:6:bool PMU::MeasureVolt()	24	static
