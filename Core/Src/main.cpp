@@ -28,6 +28,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "PMU.h"
+#include "FreeRTOS.h"
+#include "task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,7 +40,17 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define CH0_CPOH_NORMAL  GPIO_PIN_SET
+#define CH0_CPOL_NORMAL  GPIO_PIN_SET
 
+#define CH1_CPOH_NORMAL  GPIO_PIN_SET
+#define CH1_CPOL_NORMAL  GPIO_PIN_SET
+
+#define CH2_CPOH_NORMAL  GPIO_PIN_SET
+#define CH2_CPOL_NORMAL  GPIO_PIN_SET
+
+#define CH3_CPOH_NORMAL  GPIO_PIN_SET
+#define CH3_CPOL_NORMAL  GPIO_PIN_SET
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -58,6 +70,7 @@ PMU mySystem(
     &hspi3,
     GPIOA, GPIO_PIN_4,  // SYNC (CS 역할) 포트 및 핀
     GPIOD, GPIO_PIN_8,   // BUSY 포트 및 핀
+	GPIOG, GPIO_PIN_2,   // LOAD 포트 및 핀
     GPIOE, GPIO_PIN_14,   // RESET 포트 및 핀
 
     // 3. EEPROM 재료
@@ -67,6 +80,8 @@ PMU mySystem(
 extern I2C_HandleTypeDef hi2c4;
 extern SPI_HandleTypeDef hspi2;
 extern SPI_HandleTypeDef hspi3;
+
+extern osThreadId_t defaultTaskHandle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -118,7 +133,7 @@ int main(void)
   MX_SPI2_Init();
   MX_SPI3_Init();
   MX_USB_OTG_HS_USB_Init();
-  MX_USART3_UART_Init();
+  MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -205,10 +220,36 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 extern "C" {
   int __io_putchar(int ch) {
-    extern UART_HandleTypeDef huart3; // CubeMX가 USART3를 썼다면 huart3입니다.
-    HAL_UART_Transmit(&huart3, (uint8_t *)&ch, 1, 0xFFFF);
+    extern UART_HandleTypeDef huart6;
+    HAL_UART_Transmit(&huart6, (uint8_t *)&ch, 1, 0xFFFF);
     return ch;
   }
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    // ADC DONE 인터럽트
+    if (GPIO_Pin == ADC_DONEn_Pin) {
+
+        // 2. 8개 핀 전수 검사: 단 하나라도 "정상(Normal)" 상태가 아니라면 printf
+        // HAL_GPIO_ReadPin은 아주 가벼운 함수라 8번 연속 불러도 몇 십 나노초면 끝납니다.
+        if (HAL_GPIO_ReadPin(CPOH0_GPIO_Port, CPOH0_Pin) != CH0_CPOH_NORMAL ||
+            HAL_GPIO_ReadPin(CPOL0_GPIO_Port, CPOL0_Pin) != CH0_CPOL_NORMAL ||
+            HAL_GPIO_ReadPin(CPOH1_GPIO_Port, CPOH1_Pin) != CH1_CPOH_NORMAL ||
+            HAL_GPIO_ReadPin(CPOL1_GPIO_Port, CPOL1_Pin) != CH1_CPOL_NORMAL ||
+            HAL_GPIO_ReadPin(CPOH2_GPIO_Port, CPOH2_Pin) != CH2_CPOH_NORMAL ||
+            HAL_GPIO_ReadPin(CPOL2_GPIO_Port, CPOL2_Pin) != CH2_CPOL_NORMAL ||
+            HAL_GPIO_ReadPin(CPOH3_GPIO_Port, CPOH3_Pin) != CH3_CPOH_NORMAL ||
+            HAL_GPIO_ReadPin(CPOL3_GPIO_Port, CPOL3_Pin) != CH3_CPOL_NORMAL)
+        {
+        	mySystem.Emergency_Stop();
+            return;
+        }
+
+        // 3. 8개 핀 모두 정상일 때만 평소처럼 ADC 데이터 읽기 수행
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        vTaskNotifyGiveFromISR((TaskHandle_t)defaultTaskHandle, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
 }
 /* USER CODE END 4 */
 

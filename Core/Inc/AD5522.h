@@ -58,6 +58,7 @@ public:
 			SPI_HandleTypeDef* hspi,
 			GPIO_TypeDef* syncP, uint16_t syncN,
 			GPIO_TypeDef* busyP, uint16_t busyN,
+			GPIO_TypeDef* loadP, uint16_t loadN,
 			GPIO_TypeDef* resetP, uint16_t resetN);
 
     bool Init();
@@ -76,6 +77,7 @@ private:
 	SPI_HandleTypeDef* hspi;
 	GPIO_TypeDef *syncPort;	uint16_t syncPin;
 	GPIO_TypeDef *busyPort; uint16_t busyPin;
+	GPIO_TypeDef *loadPort;  uint16_t loadPin;
 	GPIO_TypeDef *resetPort; uint16_t resetPin;
 
 	// 5. 내부 유틸리티 함수

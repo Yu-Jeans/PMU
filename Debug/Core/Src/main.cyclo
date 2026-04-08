@@ -1,9 +1,10 @@
-../Core/Src/main.cpp:89:5:int main()	1
-../Core/Src/main.cpp:156:6:void SystemClock_Config()	4
-../Core/Src/main.cpp:207:7:int __io_putchar(int)	1
-../Core/Src/main.cpp:217:6:void MPU_Config()	1
-../Core/Src/main.cpp:249:17:void Error_Handler()	1
-../Core/Src/main.cpp:258:1:void __static_initialization_and_destruction_0()	1
-../Core/Src/main.cpp:258:1:void __static_initialization_and_destruction_1()	1
-../Core/Src/main.cpp:258:1:cpp)	1
-../Core/Src/main.cpp:258:1:cpp)	1
+../Core/Src/main.cpp:104:5:int main()	1
+../Core/Src/main.cpp:171:6:void SystemClock_Config()	4
+../Core/Src/main.cpp:222:7:int __io_putchar(int)	1
+../Core/Src/main.cpp:229:6:void HAL_GPIO_EXTI_Callback(uint16_t)	12
+../Core/Src/main.cpp:258:6:void MPU_Config()	1
+../Core/Src/main.cpp:290:17:void Error_Handler()	1
+../Core/Src/main.cpp:299:1:void __static_initialization_and_destruction_0()	1
+../Core/Src/main.cpp:299:1:void __static_initialization_and_destruction_1()	1
+../Core/Src/main.cpp:299:1:cpp)	1
+../Core/Src/main.cpp:299:1:cpp)	1

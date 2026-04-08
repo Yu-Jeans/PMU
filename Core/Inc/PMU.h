@@ -26,6 +26,7 @@ public:
 			SPI_HandleTypeDef* hspi_pmu,
 			GPIO_TypeDef* syncP_pmu, uint16_t syncN_pmu,
 			GPIO_TypeDef* busyP_pmu, uint16_t busyN_pmu,
+			GPIO_TypeDef* loadP_pmu, uint16_t loadN_pmu,
 			GPIO_TypeDef* resetP_pmu, uint16_t resetN_pmu,
 
 	        I2C_HandleTypeDef* hi2c_eeprom, uint16_t addr_eeprom);
@@ -33,6 +34,8 @@ public:
 
 	bool Init();
 	void Loop();
+	void Emergency_Stop();
+
 	bool MeasureOhm();
 	bool MeasureVolt();
 	bool MeasureAmp();
