@@ -68,28 +68,20 @@ public:
 	void SetClamp(Channel ch, DAC_Type type, uint8_t range_bits, float value);
 	void SetComparator(Channel ch, DAC_Type type, uint8_t range_bits, float value);
 
-
-    void SetForceVoltage(Channel ch, float target_voltage);
-
-
 private:
-	// 4. 하드웨어 연결 변수
 	SPI_HandleTypeDef* hspi;
 	GPIO_TypeDef *syncPort;	uint16_t syncPin;
 	GPIO_TypeDef *busyPort; uint16_t busyPin;
 	GPIO_TypeDef *loadPort;  uint16_t loadPin;
 	GPIO_TypeDef *resetPort; uint16_t resetPin;
 
-	// 5. 내부 유틸리티 함수
+	void SetSystemDefault();
 	void Write29Bits(uint32_t data);
 	void WriteDAC(Channel ch, DAC_Type type, uint8_t range_bits, uint16_t dac_code);
-	void SetSystemDefault();
 
-	// 6. 수학 계산 함수
 	uint16_t CalculateVoltageToDAC(float target_v);
 	uint16_t CalculateCurrentToDAC(uint8_t range_bits, float target_i);
 	float GetRsenseValue(uint8_t range_bits);
-
 };
 
 

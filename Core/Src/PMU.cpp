@@ -28,19 +28,16 @@ bool PMU::Init() {
     bool success = true;
 
     // EEPROM 초기화 (myEEPROM)
-    if (myEEPROM.Init()) { // EEPROM 칩 자체의 초기화 확인 (만약 Init 함수가 있다면)
+    if (myEEPROM.Init()) {
 		if (myEEPROM.LoadCalibration(&myCalData)) {
 			printf("PMU: EEPROM Calibration Data Loaded!\r\n");
 		} else {
 			// 하드웨어는 정상이나, 내부에 저장된 캘리브레이션 데이터가 없거나 깨진 경우
 			printf("PMU: [FATAL] EEPROM Calibration Data Load Failed!\r\n");
-			success = false; // 신뢰할 수 없는 장비이므로 에러 처리!
-
-			// 주의: 기본값을 덮어씌워 강제로 동작하게 하는 안전장치를 둘 수도 있지만,
-			// 정밀 측정 장비라면 아예 동작을 막고 재교정(Recalibration)을 요구하는 것이 정석입니다.
+			success = false;
 		}
 	} else {
-		// EEPROM 칩 자체가 응답하지 않는 경우 (하드웨어 불량)
+		// EEPROM 칩 자체가 응답하지 않는 경우
 		printf("PMU: [FATAL] EEPROM Hardware Init Failed!\r\n");
 		success = false;
 	}
@@ -56,7 +53,6 @@ bool PMU::Init() {
         printf("PMU: DAC(AD5522) Hardware Init Failed!\r\n");
         success = false;
     }
-
 	// PMU 안전 한계선(Clamp, Comparator) 및 초기값 설정
 	for (int ch = 0; ch < 4; ch++) {
 		// 💡 [핵심 수정] 비트 마스크(1, 2, 4, 8)로 정확하게 채널 선택!
@@ -77,44 +73,56 @@ bool PMU::Init() {
 		PMU_IC.SetChannelMode(current_ch, true, AD5522::FV_MODE, AD5522::RANGE_2mA, AD5522::MI_MODE);
 	}
 
-
-
-
-
-    // 3. 칩들이 깨어난 후 PMU 차원의 추가 설정
+    // 칩들이 깨어난 후 PMU 차원의 추가 설정
     if (success) {
 		printf("PMU: Initialization Complete. System Online.\r\n");
 	} else {
 		printf("PMU: Initialization Failed. System Halted.\r\n");
 	}
-
     return success;
 }
 
 
-bool PMU::MeasureVolt() {
-    // float raw_voltage = ADC_IC.GetVolt(); // (ADC 함수 완성 전까지 주석 처리)
-    float raw_voltage = 1.23f; // 테스트용 임시 값
 
-    float real_voltage = (raw_voltage * myCalData.gain[0]) + myCalData.offset[0]; // 보정식
 
-    printf("CH1 Measure Voltage: %f V\r\n", real_voltage);
+void PMU::SetOutputVoltage(int ch, float target_volt) {
+    float calibrated_volt = (target_volt - myCalData.v_offset[ch]) / myCalData.v_gain[ch];
 
-    return true;
+    AD5522::Channel dac_ch = (AD5522::Channel)(1 << ch);
+
+    PMU_IC.SetForceValue(dac_ch, 0b101, calibrated_volt);
 }
 
+void PMU::SetOutputCurrent(int ch, float target_current_uA) {
+    float calibrated_current = (target_current_uA - myCalData.i_offset[ch]) / myCalData.i_gain[ch];
 
+    AD5522::Channel dac_ch = (AD5522::Channel)(1 << ch);
 
+    PMU_IC.SetForceValue(dac_ch, 0b101, calibrated_current);
+}
 
+void PMU::MeasureVolt(int ch) {
+	float raw_voltage = ADC_IC.GetVolt(ch);
 
+	float real_voltage = (raw_voltage * myCalData.v_gain[ch]) + myCalData.v_offset[ch];
+
+    printf("CH%d Measure Voltage: %f V\r\n", ch, real_voltage);
+
+    latestData.voltage[ch]= real_voltage;
+}
+
+void PMU::MeasureCurrent(int ch) {
+    float raw_voltage = ADC_IC.GetVolt(ch);
+
+    float real_current = (raw_voltage * myCalData.i_gain[ch]) + myCalData.i_offset[ch];
+
+    printf("CH%d Measure Current: %.2f uA\r\n", ch, real_current);
+
+    latestData.current[ch] = real_current;
+}
 
 // [PMU.cpp의 맨 아래 Emergency_Stop() 함수]
+// 4개 채널 모두 출력 즉시 차단
 void PMU::Emergency_Stop() {
-    // 4개 채널 모두 출력 즉시 차단
-    for (int ch = 0; ch < 4; ch++) {
-        AD5522::Channel current_ch = (AD5522::Channel)(1 << ch);
-
-        // 여기도 정확한 enum 이름으로 수정
-        PMU_IC.SetChannelMode(current_ch, false, AD5522::FV_MODE, AD5522::RANGE_2mA, AD5522::MI_MODE);
-    }
+	PMU_IC.SetChannelMode(AD5522::ALL, false, AD5522::FV_MODE, AD5522::RANGE_2mA, AD5522::MI_MODE);
 }

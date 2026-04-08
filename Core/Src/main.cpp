@@ -22,7 +22,7 @@
 #include "i2c.h"
 #include "spi.h"
 #include "usart.h"
-#include "usb_otg.h"
+#include "usb_device.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -30,6 +30,7 @@
 #include "PMU.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "usbd_cdc_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,14 +67,14 @@ PMU mySystem(
     &hspi2,
 	GPIOB, GPIO_PIN_9,
 
-    // 2. DAC (AD5522)
+    // 2. PMU_IC (AD5522)
     &hspi3,
     GPIOA, GPIO_PIN_4,  // SYNC (CS 역할) 포트 및 핀
     GPIOD, GPIO_PIN_8,   // BUSY 포트 및 핀
 	GPIOG, GPIO_PIN_2,   // LOAD 포트 및 핀
     GPIOE, GPIO_PIN_14,   // RESET 포트 및 핀
 
-    // 3. EEPROM 재료
+    // 3. EEPROM
     &hi2c4, 0xA0
 );
 
@@ -85,7 +86,7 @@ extern osThreadId_t defaultTaskHandle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
+extern "C" void SystemClock_Config(void);
 static void MPU_Config(void);
 extern "C" void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
@@ -132,7 +133,6 @@ int main(void)
   MX_I2C4_Init();
   MX_SPI2_Init();
   MX_SPI3_Init();
-  MX_USB_OTG_HS_USB_Init();
   MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
 
@@ -150,13 +150,6 @@ int main(void)
   while (1)
   {
 
-	/* 코드 예시
-	// 채널 0을 켭니다. 전압 출력(FV) 모드, 2mA 범위, 전류 측정(MI) 모드로 설정
-	pmu.SetChannelMode(AD5522::CH0, true, AD5522::FV_MODE, AD5522::RANGE_2mA, AD5522::MI_MODE);
-
-	// 채널 1과 2를 켭니다. 전류 출력(FI) 모드, 200uA 범위, 전압 측정(MV) 모드로 설정
-	pmu.SetChannelMode(AD5522::CH1 | AD5522::CH2, true, AD5522::FI_MODE, AD5522::RANGE_200uA, AD5522::MV_MODE);*/
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -168,7 +161,7 @@ int main(void)
   * @brief System Clock Configuration
   * @retval None
   */
-void SystemClock_Config(void)
+extern "C" void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
@@ -220,8 +213,8 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 extern "C" {
   int __io_putchar(int ch) {
-    extern UART_HandleTypeDef huart6;
-    HAL_UART_Transmit(&huart6, (uint8_t *)&ch, 1, 0xFFFF);
+	  uint8_t data = (uint8_t)ch;
+	  VCP_Transmit_HS(&data, 1);
     return ch;
   }
 }
@@ -230,7 +223,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     // ADC DONE 인터럽트
     if (GPIO_Pin == ADC_DONEn_Pin) {
 
-        // 2. 8개 핀 전수 검사: 단 하나라도 "정상(Normal)" 상태가 아니라면 printf
+        // 8개 핀 전수 검사: 단 하나라도 "정상(Normal)" 상태가 아니라면 멈춤. print 추가 예정
         // HAL_GPIO_ReadPin은 아주 가벼운 함수라 8번 연속 불러도 몇 십 나노초면 끝납니다.
         if (HAL_GPIO_ReadPin(CPOH0_GPIO_Port, CPOH0_Pin) != CH0_CPOH_NORMAL ||
             HAL_GPIO_ReadPin(CPOL0_GPIO_Port, CPOL0_Pin) != CH0_CPOL_NORMAL ||
@@ -245,7 +238,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
             return;
         }
 
-        // 3. 8개 핀 모두 정상일 때만 평소처럼 ADC 데이터 읽기 수행
+        // 8개 핀 모두 정상일 때만 평소처럼 ADC 데이터 읽기 수행
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         vTaskNotifyGiveFromISR((TaskHandle_t)defaultTaskHandle, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);

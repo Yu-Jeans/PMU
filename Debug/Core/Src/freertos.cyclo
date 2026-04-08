@@ -1,2 +1,3 @@
-../Core/Src/freertos.cpp:76:6:void MX_FREERTOS_Init()	2
-../Core/Src/freertos.cpp:120:6:void StartDefaultTask(void*)	1
+../Core/Src/freertos.cpp:96:6:void MX_FREERTOS_Init()	1
+../Core/Src/freertos.cpp:153:6:void StartDefaultTask(void*)	2
+../Core/Src/freertos.cpp:173:6:void StartCommandTask(void*)	15

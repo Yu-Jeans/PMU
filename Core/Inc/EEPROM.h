@@ -13,8 +13,11 @@
 // 🚨 패딩 방지 마법의 주문!
 // float(4바이트) * 8개 = 총 32바이트 (24FC064의 정확히 1페이지 사이즈!)
 typedef struct {
-    float offset[4]; // 4개 채널의 영점 오차 (ex: +0.001V)
-    float gain[4];   // 4개 채널의 기울기 오차 (ex: *1.002)
+    float v_offset[4]; // 4개 채널의 영점 오차 (ex: +0.001V)
+    float v_gain[4];   // 4개 채널의 기울기 오차 (ex: *1.002)
+
+    float i_offset[4];
+	float i_gain[4];
 } __attribute__((packed)) CalibrationData_t;
 
 class EEPROM24FC064 {

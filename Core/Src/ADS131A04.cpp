@@ -86,7 +86,6 @@ float ADS131A04IPBSR::GetVolt(uint8_t channel) {
     int32_t raw = GetRawValue(channel);
 
     int32_t pure_24bit_adc = raw >> 8; //오른쪽으로 8칸 밀어서 하위 8비트(해밍 데이터)를 버림
-    // 음수 표현(2의 보수) 유지를 위해 int32_t로 캐스팅
 
     return (float)pure_24bit_adc * (4.0f / 16777215.0f);
 }

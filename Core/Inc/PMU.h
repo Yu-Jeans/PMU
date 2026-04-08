@@ -13,6 +13,11 @@
 #include "AD5522.h"
 #include "stdio.h"
 
+typedef struct {
+    float voltage[4];
+    float current[4];
+} PMU_Data_t;
+
 class PMU{
 private:
 	ADS131A04IPBSR ADC_IC; //ADC는 PMU 안(예를 들면 PMU의 동작을 정의하는 곳)에서만 사용 가능
@@ -32,13 +37,17 @@ public:
 	        I2C_HandleTypeDef* hi2c_eeprom, uint16_t addr_eeprom);
 	~PMU();
 
+	PMU_Data_t latestData;
 	bool Init();
 	void Loop();
+	void SetOutputVoltage(int ch, float target_volt);
+	void SetOutputCurrent(int ch, float current_uA);
+	void MeasureVolt(int ch);
+	void MeasureCurrent(int ch);
 	void Emergency_Stop();
 
-	bool MeasureOhm();
-	bool MeasureVolt();
-	bool MeasureAmp();
+	//bool MeasureOhm();
+	//bool MeasureAmp();
 };
 
 
