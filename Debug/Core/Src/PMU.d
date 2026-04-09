@@ -35,7 +35,8 @@ Core/Src/PMU.o: ../Core/Src/PMU.cpp ../Core/Inc/PMU.h \
  ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_pcd.h \
  ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_ll_usb.h \
  ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_pcd_ex.h \
- ../Core/Inc/EEPROM.h ../Core/Inc/AD5522.h
+ ../Core/Inc/EEPROM.h ../Core/Inc/AD5522.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h
 ../Core/Inc/PMU.h:
 ../Core/Inc/ADS131A04.h:
 ../Core/Inc/main.h:
@@ -76,3 +77,4 @@ Core/Src/PMU.o: ../Core/Src/PMU.cpp ../Core/Inc/PMU.h \
 ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_pcd_ex.h:
 ../Core/Inc/EEPROM.h:
 ../Core/Inc/AD5522.h:
+../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:

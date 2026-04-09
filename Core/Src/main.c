@@ -18,7 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os2.h"
+#include "cmsis_os.h"
 #include "i2c.h"
 #include "spi.h"
 #include "usart.h"
@@ -27,79 +27,34 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "PMU.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "usbd_cdc_if.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CH0_CPOH_NORMAL  GPIO_PIN_SET
-#define CH0_CPOL_NORMAL  GPIO_PIN_SET
 
-#define CH1_CPOH_NORMAL  GPIO_PIN_SET
-#define CH1_CPOL_NORMAL  GPIO_PIN_SET
-
-#define CH2_CPOH_NORMAL  GPIO_PIN_SET
-#define CH2_CPOL_NORMAL  GPIO_PIN_SET
-
-#define CH3_CPOH_NORMAL  GPIO_PIN_SET
-#define CH3_CPOL_NORMAL  GPIO_PIN_SET
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-typedef struct {
-    GPIO_TypeDef* port;
-    uint16_t pin;
-    uint8_t normal;
-} ClampPin_t;
 
-static const ClampPin_t Comparator_PINS[8] = {
-    {CPOH0_GPIO_Port, CPOH0_Pin, CH0_CPOH_NORMAL}, {CPOL0_GPIO_Port, CPOL0_Pin, CH0_CPOL_NORMAL},
-    {CPOH1_GPIO_Port, CPOH1_Pin, CH1_CPOH_NORMAL}, {CPOL1_GPIO_Port, CPOL1_Pin, CH1_CPOL_NORMAL},
-    {CPOH2_GPIO_Port, CPOH2_Pin, CH2_CPOH_NORMAL}, {CPOL2_GPIO_Port, CPOL2_Pin, CH2_CPOL_NORMAL},
-    {CPOH3_GPIO_Port, CPOH3_Pin, CH3_CPOH_NORMAL}, {CPOL3_GPIO_Port, CPOL3_Pin, CH3_CPOL_NORMAL}
-};
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-PMU mySystem(
-    // 1. ADC (ADS131A04)
-    &hspi2,
-	GPIOB, GPIO_PIN_9,
 
-    // 2. PMU_IC (AD5522)
-    &hspi3,
-    GPIOA, GPIO_PIN_4,  // SYNC (CS 역할) 포트 및 핀
-    GPIOD, GPIO_PIN_8,   // BUSY 포트 및 핀
-	GPIOG, GPIO_PIN_2,   // LOAD 포트 및 핀
-    GPIOE, GPIO_PIN_14,   // RESET 포트 및 핀
-
-    // 3. EEPROM
-    &hi2c4, 0xA0
-);
-
-extern I2C_HandleTypeDef hi2c4;
-extern SPI_HandleTypeDef hspi2;
-extern SPI_HandleTypeDef hspi3;
-
-extern osThreadId_t defaultTaskHandle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
-extern "C" void SystemClock_Config(void);
+void SystemClock_Config(void);
 static void MPU_Config(void);
-extern "C" void MX_FREERTOS_Init(void);
+void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -148,19 +103,20 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
+
   /* Init scheduler */
   osKernelInitialize();  /* Call init function for freertos objects (in cmsis_os2.c) */
   MX_FREERTOS_Init();
+
   /* Start scheduler */
   osKernelStart();
 
-/* We should never get here as control is now taken by the scheduler */
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -172,7 +128,7 @@ int main(void)
   * @brief System Clock Configuration
   * @retval None
   */
-extern "C" void SystemClock_Config(void)
+void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
@@ -222,65 +178,7 @@ extern "C" void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-extern "C" int _write(int file, char *ptr, int len) {
-    // printf 결과물을 USB CDC(Native USB)로 전송
-    CDC_Transmit_HS((uint8_t*)ptr, len);
-    return len;
-}
 
-
-/*extern "C" {
-  int __io_putchar(int ch) {
-	uint8_t data = (uint8_t)ch;
-	extern USBD_HandleTypeDef hUsbDeviceHS;
-	USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceHS.pClassData;
-
-	// 이전 전송이 끝날 때까지 대기 (Timeout 추가 권장)
-	while (hcdc != NULL && hcdc->TxState != 0) {
-		osDelay(1);
-	}
-	VCP_Transmit_HS(&data, 1);
-    return ch;
-  }
-}
-*/
-
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-    // 온도 알람이나 전원 알람이 뜨면 즉시 정지
-	if (GPIO_Pin == TMP_ARALMn_Pin || GPIO_Pin == CGALMn_Pin) {
-	        mySystem.Emergency_Stop();
-
-	        // 어떤 알람인지 로그 남기기
-	        if (GPIO_Pin == TMP_ARALMn_Pin){
-	        	printf("\r\n[CRITICAL] TEMPERATURE ALARM!!!\r\n");
-	        }
-	        else{
-	        	printf("\r\n[CRITICAL] CLAMP ALARM!!!\r\n");
-	        }
-	        return;
-	    }
-
-    // ADC DONE 인터럽트
-    if (GPIO_Pin == ADC_DONEn_Pin) {
-    	uint8_t comparator_mask = 0;
-
-    	for (int i = 0; i < 8; i++) {
-			if (HAL_GPIO_ReadPin(Comparator_PINS[i].port, Comparator_PINS[i].pin) != Comparator_PINS[i].normal) {
-				comparator_mask |= (1 << i); // 문제가 있는 비트만 1로 셋 (Bit 0: CH0_HI, Bit 1: CH0_LO...)
-			}
-		}
-    	mySystem.latestData.comparator_status = comparator_mask;
-
-    	if (mySystem.latestData.comparator_status != 0) {
-    	    printf("[WARN] Clamp Detected! Mask: 0x%02X\n", mySystem.latestData.comparator_status);
-    	}
-        // 8개 핀 모두 정상일 때만 평소처럼 ADC 데이터 읽기 수행
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        vTaskNotifyGiveFromISR((TaskHandle_t)defaultTaskHandle, &xHigherPriorityTaskWoken);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
-}
 /* USER CODE END 4 */
 
  /* MPU Configuration */
@@ -312,12 +210,33 @@ void MPU_Config(void)
 
 }
 
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
   * @retval None
   */
-extern "C" void Error_Handler(void)
+void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
@@ -335,7 +254,7 @@ extern "C" void Error_Handler(void)
   * @param  line: assert_param error line source number
   * @retval None
   */
-extern "C" void assert_failed(uint8_t *file, uint32_t line)
+void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,

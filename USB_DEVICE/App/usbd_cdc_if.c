@@ -129,6 +129,18 @@ static int8_t CDC_Receive_HS(uint8_t* pbuf, uint32_t *Len);
 static int8_t CDC_TransmitCplt_HS(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_DECLARATION */
+
+
+
+
+
+
+
+
+
+
+
+/*
 uint8_t VCP_Transmit_HS(uint8_t* Buf, uint16_t Len)
 {
     if (CDC_Transmit_HS(Buf, Len) == USBD_OK) {
@@ -136,6 +148,9 @@ uint8_t VCP_Transmit_HS(uint8_t* Buf, uint16_t Len)
     }
     return 1;
 }
+*/
+
+
 /* USER CODE END PRIVATE_FUNCTIONS_DECLARATION */
 
 /**

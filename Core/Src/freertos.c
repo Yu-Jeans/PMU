@@ -21,14 +21,11 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "main.h"
-#include "PMU.h"
 #include "cmsis_os.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "usb_device.h"
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,12 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-extern "C" {
-    void StartDefaultTask(void *argument);
-    void MX_FREERTOS_Init(void);
-}
 
-extern PMU mySystem;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -87,15 +79,16 @@ const osMessageQueueAttr_t usbRxQueue_attributes = {
   .name = "usbRxQueue"
 };
 
-
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-void StartCommandTask(void *argument);
-void StartUartLoggingTask(void *argument);
+
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
+void StartCommandTask(void *argument);
+void StartUartLoggingTask(void *argument);
 
+extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /**
@@ -120,13 +113,18 @@ void MX_FREERTOS_Init(void) {
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* Create the queue(s) */
+  /* creation of uartQueue */
+  uartQueueHandle = osMessageQueueNew (4, sizeof(PMU_Data_t), &uartQueue_attributes);
+
+  /* creation of usbRxQueue */
+  usbRxQueueHandle = osMessageQueueNew (128, sizeof(uint8_t), &usbRxQueue_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-
-
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
@@ -136,17 +134,8 @@ void MX_FREERTOS_Init(void) {
   /* creation of uartLoggingTask */
   uartLoggingTaskHandle = osThreadNew(StartUartLoggingTask, NULL, &uartLoggingTask_attributes);
 
+  /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-
-
-  /* Create the queue(s) */
-
-  /* creation of uartQueue */
-  uartQueueHandle = osMessageQueueNew (4, sizeof(PMU_Data_t), &uartQueue_attributes);
-
-  /* creation of usbRxQueue */
-  usbRxQueueHandle = osMessageQueueNew (128, sizeof(uint8_t), &usbRxQueue_attributes);
-
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -167,17 +156,30 @@ void StartDefaultTask(void *argument)
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN StartDefaultTask */
-  mySystem.Init();
   /* Infinite loop */
-	for(;;)
-	  {
-		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-   		for(int i = 0; i < 4; i++) {
-				mySystem.MeasureVolt(i);
-			}
-   		osMessageQueuePut(uartQueueHandle, &mySystem.latestData, 0, 0);
-	  }
+  for(;;)
+  {
+    osDelay(1);
+  }
   /* USER CODE END StartDefaultTask */
+}
+
+/* USER CODE BEGIN Header_StartCommandTask */
+/**
+* @brief Function implementing the commandTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartCommandTask */
+void StartCommandTask(void *argument)
+{
+  /* USER CODE BEGIN StartCommandTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartCommandTask */
 }
 
 /* USER CODE BEGIN Header_StartUartLoggingTask */
@@ -190,23 +192,10 @@ void StartDefaultTask(void *argument)
 void StartUartLoggingTask(void *argument)
 {
   /* USER CODE BEGIN StartUartLoggingTask */
-  extern UART_HandleTypeDef huart6; // main.cpp에 있는 UART6 핸들 가져오기
-  PMU_Data_t logData;
-  char msg[128];
   /* Infinite loop */
   for(;;)
   {
-	  // uartQueue에 데이터가 들어올 때까지 무한 대기
-		if (osMessageQueueGet(uartQueueHandle, &logData, NULL, osWaitForever) == osOK) {
-
-			// CSV 형태로 포맷팅해서 UART6로 전송 (ST-LINK VCP용)
-			int len = sprintf(msg, "V0:%.3f,V1:%.3f,V2:%.3f,V3:%.3f,STS:0x%02X\r\n",
-							  logData.voltage[0], logData.voltage[1],
-							  logData.voltage[2], logData.voltage[3],
-							  logData.comparator_status);
-
-			HAL_UART_Transmit(&huart6, (uint8_t*)msg, len, 100);
-		}
+    osDelay(1);
   }
   /* USER CODE END StartUartLoggingTask */
 }
@@ -214,86 +203,5 @@ void StartUartLoggingTask(void *argument)
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 
-void ProcessCommand(const char* cmdBuffer) {
-    char cmdStr[4];
-    int ch;
-    float val;
-
-    // 1. V나 I 명령어 처리 ("FV 0 5.0")
-    if (sscanf(cmdBuffer, "%s %d %f", cmdStr, &ch, &val) == 3) {
-    	if (ch < 0 || ch > 3) {
-    	        printf("\r\n[ERROR] Invalid Channel (0~3)\r\n");
-    	    }
-    	else {
-    		for(int i = 0; cmdStr[i]; i++) cmdStr[i] = tolower(cmdStr[i]);
-
-			if (strcmp(cmdStr, "fv") == 0) {
-				mySystem.SetOutputVoltage(ch, val);
-				printf("\r\n[OK] CH%d FV -> %.3f V\r\n", ch, val);
-			}
-			else if (strcmp(cmdStr, "fi") == 0) {
-				mySystem.SetOutputCurrent(ch, val);
-				printf("\r\n[OK] CH%d FI -> %.1f uA\r\n", ch, val);
-			}
-			else if (strcmp(cmdStr, "mv") == 0) {
-				mySystem.MeasureVolt(ch);
-				printf("\r\n[MEAS] CH%d MV: %.4f V\r\n", ch, mySystem.latestData.voltage[ch]);
-			}
-			else if (strcmp(cmdStr, "mi") == 0) {
-				mySystem.MeasureCurrent(ch);
-				printf("\r\n[MEAS] CH%d MI: %.3f uA\r\n", ch, mySystem.latestData.current[ch]);
-			}
-
-			else {
-				printf("\r\n[ERROR] Unknown Command: %s\r\n", cmdStr);
-			}
-
-		}
-    }
-    // 2. STOP 명령어 처리
-    else if (strcmp(cmdBuffer, "stop") == 0) {
-        mySystem.Emergency_Stop();
-        printf("\r\n[WARNING] EMERGENCY STOP!\r\n");
-    }
-    // 3. 알 수 없는 명령어
-    else {
-        printf("\r\n[ERROR] Unknown Command\r\n");
-    }
-}
-
-void StartCommandTask(void *argument)
-{
-    char rxBuffer[64];
-    uint8_t index = 0;
-    uint8_t rxData;
-
-    printf("\r\n=== PMU USB Command Mode ===\r\nPMU> ");
-
-    for(;;)
-    {
-        if (osMessageQueueGet(usbRxQueueHandle, &rxData, NULL, portMAX_DELAY) == osOK)
-        {
-            printf("%c", rxData); // 사용자가 친 글자 화면에 보여주기
-
-            if (rxData == '\r' || rxData == '\n') // 엔터키를 쳤을 때
-            {
-                if (index > 0) {
-                    rxBuffer[index] = '\0'; // 문자열 닫기
-
-                    ProcessCommand(rxBuffer);
-
-                    index = 0; // 버퍼 비우기
-                    printf("PMU> "); // 다음 입력 대기
-                }
-            }
-            else if (rxData == '\b' || rxData == 0x7F) { // 백스페이스 처리
-                if (index > 0) index--;
-            }
-            else { // 일반 글자 모으기
-                if (index < 63) rxBuffer[index++] = rxData;
-            }
-        }
-    }
-}
 /* USER CODE END Application */
 

@@ -16,7 +16,23 @@
 typedef struct {
     float voltage[4];
     float current[4];
+
+	uint8_t comparator_status;
 } PMU_Data_t;
+
+typedef enum {
+    CMD_FORCE_VOLTAGE,
+    CMD_FORCE_CURRENT,
+    CMD_MEAS_VOLTAGE,
+    CMD_MEAS_CURRENT,
+    CMD_EMERGENCY_STOP
+} PMU_CmdType_t;
+
+typedef struct {
+    PMU_CmdType_t cmd_type;
+    uint8_t channel;
+    float value;
+} PMU_CmdPacket_t;
 
 class PMU{
 private:
@@ -24,7 +40,10 @@ private:
 	AD5522         PMU_IC;
 	EEPROM24FC064  myEEPROM;
 	CalibrationData_t myCalData;
-	//AD5522 PMU_IC;
+
+	AD5522::CurrentRange current_state_range[4];
+	AD5522::ForceMode    current_force_mode[4];
+    AD5522::MeasureMode  current_measure_mode[4];
 public:
 	PMU(SPI_HandleTypeDef* hspi_adc, GPIO_TypeDef* csPort_adc, uint16_t csPin_adc,
 
@@ -40,6 +59,7 @@ public:
 	PMU_Data_t latestData;
 	bool Init();
 	void Loop();
+	float GetRangeResistance(AD5522::CurrentRange range);
 	void SetOutputVoltage(int ch, float target_volt);
 	void SetOutputCurrent(int ch, float current_uA);
 	void MeasureVolt(int ch);

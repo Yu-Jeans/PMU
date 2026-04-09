@@ -51,6 +51,7 @@ void AD5522::SetSystemDefault() {
     // 기능 전원
     reg |= (1 << 13); // CPBIASEN: 내부 비교기 메인 전원 ON
     reg |= (1 << 8);  // Guard EN: 가드 앰프 메인 전원 ON
+    reg |= (1 << 7);  // GAIN1=1, GAIN0=0
     reg |= (1 << 5);  // TMP ENABLE: 칩 과열(기본 130도) 시 자동 셧다운 기능 ON
     // 알람 핀 세팅
     reg |= (1 << 10); // CLAMP ALM: 클램프 작동 시 CGALM 핀으로 알람 출력
@@ -166,7 +167,7 @@ void AD5522::Write29Bits(uint32_t data) {
 }
 
 uint16_t AD5522::CalculateVoltageToDAC(float target_v) {
-    float result = ((target_v + 8.75f) * 65536.0f) / 22.5f; // VREF=5V, Offset=0x8000 기준 단순화
+    float result = ((target_v + 11.25f) * 65536.0f) / 22.5f; // VREF=5V, Offset=0x8000 기준 단순화
 
     if (result > 65535.0f){
     	result = 65535.0f;
@@ -181,9 +182,18 @@ uint16_t AD5522::CalculateVoltageToDAC(float target_v) {
 
 uint16_t AD5522::CalculateCurrentToDAC(uint8_t range_bits, float target_i) {
     float rsense = GetRsenseValue(range_bits);
-    float result = ((target_i * rsense * 10.0f * 65536.0f) / 22.5f) + 32768.0f;
-    if (result > 65535.0f) result = 65535.0f;
-    if (result < 0.0f) result = 0.0f;
+
+    float target_i_A = target_i / 1000000.0f;
+
+    float result = ((target_i_A * rsense * 10.0f * 65536.0f) / 22.5f) + 32768.0f;
+
+    if (result > 65535.0f){
+    	result = 65535.0f;
+    }
+    if (result < 0.0f){
+    	result = 0.0f;
+    }
+
     return (uint16_t)result;
 }
 

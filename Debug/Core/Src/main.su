@@ -1,10 +1,10 @@
-../Core/Src/main.cpp:105:5:int main()	8	static
-../Core/Src/main.cpp:164:17:void SystemClock_Config()	88	static
-../Core/Src/main.cpp:215:7:int __io_putchar(int)	24	static
-../Core/Src/main.cpp:222:6:void HAL_GPIO_EXTI_Callback(uint16_t)	24	static,ignoring_inline_asm
-../Core/Src/main.cpp:251:6:void MPU_Config()	24	static
-../Core/Src/main.cpp:283:17:void Error_Handler()	4	static,ignoring_inline_asm
-../Core/Src/main.cpp:292:1:void __static_initialization_and_destruction_0()	56	static
-../Core/Src/main.cpp:292:1:void __static_initialization_and_destruction_1()	8	static
-../Core/Src/main.cpp:292:1:cpp)	8	static
-../Core/Src/main.cpp:292:1:cpp)	8	static
+../Core/Src/main.cpp:116:5:int main()	8	static
+../Core/Src/main.cpp:175:17:void SystemClock_Config()	88	static
+../Core/Src/main.cpp:225:16:int _write(int, char*, int)	24	static
+../Core/Src/main.cpp:249:6:void HAL_GPIO_EXTI_Callback(uint16_t)	32	static,ignoring_inline_asm
+../Core/Src/main.cpp:288:6:void MPU_Config()	24	static
+../Core/Src/main.cpp:320:17:void Error_Handler()	4	static,ignoring_inline_asm
+../Core/Src/main.cpp:329:1:void __static_initialization_and_destruction_0()	56	static
+../Core/Src/main.cpp:329:1:void __static_initialization_and_destruction_1()	8	static
+../Core/Src/main.cpp:329:1:cpp)	8	static
+../Core/Src/main.cpp:329:1:cpp)	8	static

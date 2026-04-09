@@ -1,3 +1,5 @@
-../Core/Src/freertos.cpp:96:6:void MX_FREERTOS_Init()	1
-../Core/Src/freertos.cpp:153:6:void StartDefaultTask(void*)	2
-../Core/Src/freertos.cpp:173:6:void StartCommandTask(void*)	15
+../Core/Src/freertos.cpp:106:6:void MX_FREERTOS_Init()	1
+../Core/Src/freertos.cpp:165:6:void StartDefaultTask(void*)	2
+../Core/Src/freertos.cpp:190:6:void StartUartLoggingTask(void*)	2
+../Core/Src/freertos.cpp:217:6:void ProcessCommand(const char*)	10
+../Core/Src/freertos.cpp:264:6:void StartCommandTask(void*)	9

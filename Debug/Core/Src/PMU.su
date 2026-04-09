@@ -1,8 +1,9 @@
-../Core/Src/PMU.cpp:10:1:PMU::PMU(SPI_HandleTypeDef*, GPIO_TypeDef*, uint16_t, SPI_HandleTypeDef*, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, I2C_HandleTypeDef*, uint16_t)	48	static
-../Core/Src/PMU.cpp:24:1:PMU::~PMU()	16	static
-../Core/Src/PMU.cpp:27:6:bool PMU::Init()	40	static
-../Core/Src/PMU.cpp:88:6:void PMU::SetOutputVoltage(int, float)	32	static
-../Core/Src/PMU.cpp:96:6:void PMU::SetOutputCurrent(int, float)	32	static
-../Core/Src/PMU.cpp:104:6:void PMU::MeasureVolt(int)	24	static
-../Core/Src/PMU.cpp:114:6:void PMU::MeasureCurrent(int)	24	static
-../Core/Src/PMU.cpp:126:6:void PMU::Emergency_Stop()	24	static
+../Core/Src/PMU.cpp:11:1:PMU::PMU(SPI_HandleTypeDef*, GPIO_TypeDef*, uint16_t, SPI_HandleTypeDef*, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, I2C_HandleTypeDef*, uint16_t)	48	static
+../Core/Src/PMU.cpp:25:1:PMU::~PMU()	16	static
+../Core/Src/PMU.cpp:28:6:bool PMU::Init()	40	static
+../Core/Src/PMU.cpp:92:7:float PMU::GetRangeResistance(AD5522::CurrentRange)	16	static
+../Core/Src/PMU.cpp:103:6:void PMU::SetOutputVoltage(int, float)	40	static
+../Core/Src/PMU.cpp:116:6:void PMU::SetOutputCurrent(int, float)	48	static
+../Core/Src/PMU.cpp:147:6:void PMU::MeasureVolt(int)	48	static
+../Core/Src/PMU.cpp:166:6:void PMU::MeasureCurrent(int)	72	static
+../Core/Src/PMU.cpp:221:6:void PMU::Emergency_Stop()	24	static

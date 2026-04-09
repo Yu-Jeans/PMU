@@ -6,6 +6,7 @@
  */
 
 #include "PMU.h"
+#include "cmsis_os2.h"
 
 PMU::PMU(SPI_HandleTypeDef* hspi_adc, GPIO_TypeDef* csPort_adc, uint16_t csPin_adc,
 
@@ -71,6 +72,10 @@ bool PMU::Init() {
 	for (int ch = 0; ch < 4; ch++) {
 		AD5522::Channel current_ch = (AD5522::Channel)(1 << ch);
 		PMU_IC.SetChannelMode(current_ch, true, AD5522::FV_MODE, AD5522::RANGE_2mA, AD5522::MI_MODE);
+
+		current_state_range[ch]  = AD5522::RANGE_2mA;
+        current_force_mode[ch]   = AD5522::FV_MODE;
+        current_measure_mode[ch] = AD5522::MI_MODE;
 	}
 
     // 칩들이 깨어난 후 PMU 차원의 추가 설정
@@ -84,44 +89,134 @@ bool PMU::Init() {
 
 
 
+float PMU::GetRangeResistance(AD5522::CurrentRange range) {
+    switch(range) {
+        case AD5522::RANGE_5uA:   return 200000.0f; // 200 kΩ
+        case AD5522::RANGE_20uA:  return 50000.0f;  // 50 kΩ
+        case AD5522::RANGE_200uA: return 5000.0f;   // 5 kΩ
+        case AD5522::RANGE_2mA:   return 500.0f;    // 500 Ω
+        default:                  return 1.0f;
+    }
+}
+
 
 void PMU::SetOutputVoltage(int ch, float target_volt) {
-    float calibrated_volt = (target_volt - myCalData.v_offset[ch]) / myCalData.v_gain[ch];
-
     AD5522::Channel dac_ch = (AD5522::Channel)(1 << ch);
 
+	float calibrated_volt = (target_volt - myCalData.v_offset[ch]) / myCalData.v_gain[ch];
+
+	PMU_IC.SetChannelMode(dac_ch, true, AD5522::FV_MODE, AD5522::RANGE_2mA, current_measure_mode[ch]);
     PMU_IC.SetForceValue(dac_ch, 0b101, calibrated_volt);
+
+    current_force_mode[ch] = AD5522::FV_MODE;
 }
+
+
 
 void PMU::SetOutputCurrent(int ch, float target_current_uA) {
-    float calibrated_current = (target_current_uA - myCalData.i_offset[ch]) / myCalData.i_gain[ch];
-
     AD5522::Channel dac_ch = (AD5522::Channel)(1 << ch);
 
-    PMU_IC.SetForceValue(dac_ch, 0b101, calibrated_current);
+	AD5522::CurrentRange auto_range;
+
+	float abs_current = (target_current_uA < 0) ? -target_current_uA : target_current_uA;
+
+	if (abs_current <= 5.0f) {
+		auto_range = AD5522::RANGE_5uA;
+	} else if (abs_current <= 20.0f) {
+		auto_range = AD5522::RANGE_20uA;
+	} else if (abs_current <= 200.0f) {
+		auto_range = AD5522::RANGE_200uA;
+	} else if (abs_current <= 2000.0f) {
+		auto_range = AD5522::RANGE_2mA;
+	} else {
+		printf("\r\n[ERROR] CH%d Current out of limit (Max 2mA)\r\n", ch);
+		return;
+	}
+
+    float calibrated_current = (target_current_uA - myCalData.i_offset[ch]) / myCalData.i_gain[ch];
+
+    PMU_IC.SetChannelMode(dac_ch, true, AD5522::FI_MODE, auto_range, current_measure_mode[ch]);
+    PMU_IC.SetForceValue(dac_ch, auto_range, calibrated_current);
+
+    current_state_range[ch] = auto_range;
+    current_force_mode[ch] = AD5522::FI_MODE;
 }
 
+
+
 void PMU::MeasureVolt(int ch) {
+	AD5522::Channel dac_ch = (AD5522::Channel)(1 << ch);
+
+	if (current_measure_mode[ch] != AD5522::MV_MODE) {
+		PMU_IC.SetChannelMode(dac_ch, true, current_force_mode[ch], current_state_range[ch], AD5522::MV_MODE);
+		current_measure_mode[ch] = AD5522::MV_MODE;
+		osDelay(2);
+	}
+
 	float raw_voltage = ADC_IC.GetVolt(ch);
+	float pure_voltage = (raw_voltage - 2.25f) * 5.0f;
+	float real_voltage = (pure_voltage * myCalData.v_gain[ch]) + myCalData.v_offset[ch];
 
-	float real_voltage = (raw_voltage * myCalData.v_gain[ch]) + myCalData.v_offset[ch];
-
-    printf("CH%d Measure Voltage: %f V\r\n", ch, real_voltage);
-
+    printf("CH%d Measure Voltage: %.4f V\r\n", ch, real_voltage);
     latestData.voltage[ch]= real_voltage;
 }
 
+
+
 void PMU::MeasureCurrent(int ch) {
+    AD5522::Channel dac_ch = (AD5522::Channel)(1 << ch);
+
+    if (current_measure_mode[ch] != AD5522::MI_MODE) {
+		PMU_IC.SetChannelMode(dac_ch, true, current_force_mode[ch], current_state_range[ch], AD5522::MI_MODE);
+		current_measure_mode[ch] = AD5522::MI_MODE;
+		osDelay(2);
+	}
+
+    AD5522::CurrentRange current_range = current_state_range[ch];
     float raw_voltage = ADC_IC.GetVolt(ch);
+    float range_resistance = GetRangeResistance(current_range);
 
-    float real_current = (raw_voltage * myCalData.i_gain[ch]) + myCalData.i_offset[ch];
+    float pure_v = raw_voltage - 2.25f;
+    float current_uA_raw = (pure_v / (range_resistance* 2.0f)) * 1000000.0f;
 
-    printf("CH%d Measure Current: %.2f uA\r\n", ch, real_current);
+    float calculated_current = current_uA_raw * myCalData.i_gain[ch] + myCalData.i_offset[ch];
+    float abs_current = (calculated_current < 0) ? -calculated_current : calculated_current;
 
-    latestData.current[ch] = real_current;
+    AD5522::CurrentRange next_range = current_range;
+
+    if (abs_current <= 5.0f) {
+		next_range = AD5522::RANGE_5uA;
+	}
+	else if (abs_current <= 20.0f) {
+		next_range = AD5522::RANGE_20uA;
+	}
+	else if (abs_current <= 200.0f) {
+		next_range = AD5522::RANGE_200uA;
+	}
+	else {
+		next_range = AD5522::RANGE_2mA;
+	}
+
+    if (current_range != next_range) {
+		PMU_IC.SetChannelMode(dac_ch, true, current_force_mode[ch], next_range, current_measure_mode[ch]);
+		current_state_range[ch] = next_range;
+		osDelay(2);
+
+		raw_voltage = ADC_IC.GetVolt(ch);
+		range_resistance = GetRangeResistance(next_range);
+
+
+	    pure_v = raw_voltage - 2.25f;
+		current_uA_raw = (pure_v / (range_resistance * 2.0f)) * 1000000.0f;
+		calculated_current = current_uA_raw * myCalData.i_gain[ch] + myCalData.i_offset[ch];
+	}
+
+    printf("CH%d Measure Current: %.3f uA\r\n", ch, calculated_current);
+    latestData.current[ch] = calculated_current;
 }
 
-// [PMU.cpp의 맨 아래 Emergency_Stop() 함수]
+
+
 // 4개 채널 모두 출력 즉시 차단
 void PMU::Emergency_Stop() {
 	PMU_IC.SetChannelMode(AD5522::ALL, false, AD5522::FV_MODE, AD5522::RANGE_2mA, AD5522::MI_MODE);

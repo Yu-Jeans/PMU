@@ -87,5 +87,5 @@ float ADS131A04IPBSR::GetVolt(uint8_t channel) {
 
     int32_t pure_24bit_adc = raw >> 8; //오른쪽으로 8칸 밀어서 하위 8비트(해밍 데이터)를 버림
 
-    return (float)pure_24bit_adc * (4.0f / 16777215.0f);
+    return (float)pure_24bit_adc * ((2.442 * 2.0f)/ 16777215.0f); // REFP 커패시터만 연결 => 칩 자체의 내부 레퍼런스 사용, 2.442V
 }
