@@ -4,6 +4,10 @@
 ../Core/Src/PMU.cpp:92:7:float PMU::GetRangeResistance(AD5522::CurrentRange)	5
 ../Core/Src/PMU.cpp:103:6:void PMU::SetOutputVoltage(int, float)	1
 ../Core/Src/PMU.cpp:116:6:void PMU::SetOutputCurrent(int, float)	6
-../Core/Src/PMU.cpp:147:6:void PMU::MeasureVolt(int)	2
-../Core/Src/PMU.cpp:166:6:void PMU::MeasureCurrent(int)	7
-../Core/Src/PMU.cpp:221:6:void PMU::Emergency_Stop()	1
+../Core/Src/PMU.cpp:145:6:void PMU::SetHighZ(int, AD5522::ForceMode)	1
+../Core/Src/PMU.cpp:156:6:void PMU::MeasureTemp(int)	2
+../Core/Src/PMU.cpp:178:6:void PMU::MeasureVolt(int)	2
+../Core/Src/PMU.cpp:195:6:void PMU::MeasureCurrent(int)	7
+../Core/Src/PMU.cpp:248:6:void PMU::EmergencyMeasureAll()	3
+../Core/Src/PMU.cpp:269:6:void PMU::Emergency_Stop()	1
+../Core/Src/PMU.cpp:273:6:bool PMU::SaveCalibrationToEEPROM()	2

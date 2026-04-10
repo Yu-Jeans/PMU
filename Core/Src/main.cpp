@@ -93,7 +93,7 @@ extern I2C_HandleTypeDef hi2c4;
 extern SPI_HandleTypeDef hspi2;
 extern SPI_HandleTypeDef hspi3;
 
-extern osThreadId_t defaultTaskHandle;
+extern osThreadId_t ADC_TaskHandle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -227,8 +227,6 @@ extern "C" int _write(int file, char *ptr, int len) {
     CDC_Transmit_HS((uint8_t*)ptr, len);
     return len;
 }
-
-
 /*extern "C" {
   int __io_putchar(int ch) {
 	uint8_t data = (uint8_t)ch;
@@ -245,21 +243,25 @@ extern "C" int _write(int file, char *ptr, int len) {
 }
 */
 
-
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	extern osMessageQueueId_t pmuCmdQueueHandle;
+
     // 온도 알람이나 전원 알람이 뜨면 즉시 정지
 	if (GPIO_Pin == TMP_ARALMn_Pin || GPIO_Pin == CGALMn_Pin) {
-	        mySystem.Emergency_Stop();
+		PMU_CmdPacket_t emg_order;
+		emg_order.cmd_type = CMD_EMERGENCY_STOP;
 
-	        // 어떤 알람인지 로그 남기기
-	        if (GPIO_Pin == TMP_ARALMn_Pin){
-	        	printf("\r\n[CRITICAL] TEMPERATURE ALARM!!!\r\n");
-	        }
-	        else{
-	        	printf("\r\n[CRITICAL] CLAMP ALARM!!!\r\n");
-	        }
-	        return;
-	    }
+		osMessageQueuePut(pmuCmdQueueHandle, &emg_order, 0, 0);
+
+		// 어떤 알람인지 로그 남기기
+		if (GPIO_Pin == TMP_ARALMn_Pin){
+			mySystem.latestData.system_status = SYS_ALARM_TEMP;
+		}
+		else{
+			mySystem.latestData.system_status = SYS_ALARM_CGALM;
+		}
+		return;
+	}
 
     // ADC DONE 인터럽트
     if (GPIO_Pin == ADC_DONEn_Pin) {
@@ -272,18 +274,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		}
     	mySystem.latestData.comparator_status = comparator_mask;
 
-    	if (mySystem.latestData.comparator_status != 0) {
-    	    printf("[WARN] Clamp Detected! Mask: 0x%02X\n", mySystem.latestData.comparator_status);
-    	}
-        // 8개 핀 모두 정상일 때만 평소처럼 ADC 데이터 읽기 수행
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        vTaskNotifyGiveFromISR((TaskHandle_t)defaultTaskHandle, &xHigherPriorityTaskWoken);
+        vTaskNotifyGiveFromISR((TaskHandle_t)ADC_TaskHandle, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
 }
 /* USER CODE END 4 */
 
- /* MPU Configuration */
+/* MPU Configuration */
 
 void MPU_Config(void)
 {

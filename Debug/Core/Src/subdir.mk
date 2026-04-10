@@ -13,10 +13,8 @@ CPP_SRCS += \
 ../Core/Src/main.cpp 
 
 C_SRCS += \
-../Core/Src/freertos.c \
 ../Core/Src/gpio.c \
 ../Core/Src/i2c.c \
-../Core/Src/main.c \
 ../Core/Src/spi.c \
 ../Core/Src/stm32f7xx_hal_msp.c \
 ../Core/Src/stm32f7xx_hal_timebase_tim.c \
@@ -27,10 +25,8 @@ C_SRCS += \
 ../Core/Src/usart.c 
 
 C_DEPS += \
-./Core/Src/freertos.d \
 ./Core/Src/gpio.d \
 ./Core/Src/i2c.d \
-./Core/Src/main.d \
 ./Core/Src/spi.d \
 ./Core/Src/stm32f7xx_hal_msp.d \
 ./Core/Src/stm32f7xx_hal_timebase_tim.d \

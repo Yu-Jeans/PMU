@@ -4,6 +4,10 @@
 ../Core/Src/PMU.cpp:92:7:float PMU::GetRangeResistance(AD5522::CurrentRange)	16	static
 ../Core/Src/PMU.cpp:103:6:void PMU::SetOutputVoltage(int, float)	40	static
 ../Core/Src/PMU.cpp:116:6:void PMU::SetOutputCurrent(int, float)	48	static
-../Core/Src/PMU.cpp:147:6:void PMU::MeasureVolt(int)	48	static
-../Core/Src/PMU.cpp:166:6:void PMU::MeasureCurrent(int)	72	static
-../Core/Src/PMU.cpp:221:6:void PMU::Emergency_Stop()	24	static
+../Core/Src/PMU.cpp:145:6:void PMU::SetHighZ(int, AD5522::ForceMode)	40	static
+../Core/Src/PMU.cpp:156:6:void PMU::MeasureTemp(int)	56	static
+../Core/Src/PMU.cpp:178:6:void PMU::MeasureVolt(int)	48	static
+../Core/Src/PMU.cpp:195:6:void PMU::MeasureCurrent(int)	72	static
+../Core/Src/PMU.cpp:248:6:void PMU::EmergencyMeasureAll()	56	static
+../Core/Src/PMU.cpp:269:6:void PMU::Emergency_Stop()	24	static
+../Core/Src/PMU.cpp:273:6:bool PMU::SaveCalibrationToEEPROM()	16	static

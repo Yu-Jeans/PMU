@@ -142,7 +142,38 @@ void PMU::SetOutputCurrent(int ch, float target_current_uA) {
     current_force_mode[ch] = AD5522::FI_MODE;
 }
 
+void PMU::SetHighZ(int ch, AD5522::ForceMode hz_mode) {
+    AD5522::Channel dac_ch = (AD5522::Channel)(1 << ch);
 
+    // 채널은 Enable(true) 상태로 두고 Force 모드만 High-Z(0b10)로 변경하여 출력을 차단
+    PMU_IC.SetChannelMode(dac_ch, true, hz_mode, current_state_range[ch], current_measure_mode[ch]);
+
+    // 현재 모드 상태 업데이트
+    current_force_mode[ch] = hz_mode;
+    current_measure_mode[ch] = AD5522::HIGH_Z_MEAS;
+}
+
+void PMU::MeasureTemp(int ch) {
+    AD5522::Channel dac_ch = (AD5522::Channel)(1 << ch);
+
+    if (current_measure_mode[ch] != AD5522::TEMP_MODE) {
+        PMU_IC.SetChannelMode(dac_ch, true, current_force_mode[ch], current_state_range[ch], AD5522::TEMP_MODE);
+        current_measure_mode[ch] = AD5522::TEMP_MODE;
+        osDelay(2);
+    }
+
+    float raw_voltage = ADC_IC.GetVolt(ch);
+    float pure_v = raw_voltage - 2.25f;
+
+    float v_at_25c = 1.54f;
+	float v_per_c  = 0.0047f;
+
+	float die_temp_C = ((pure_v - v_at_25c) / v_per_c) + 25.0f;
+
+	//printf("CH%d Die Temp: %.1f C (Raw: %.4f V)\r\n", ch, die_temp_C, pure_v);
+
+    latestData.temp[ch] = die_temp_C;
+} //130도 넘으면 Shutdown되므로, 130 이상이 나오면 오류
 
 void PMU::MeasureVolt(int ch) {
 	AD5522::Channel dac_ch = (AD5522::Channel)(1 << ch);
@@ -157,11 +188,9 @@ void PMU::MeasureVolt(int ch) {
 	float pure_voltage = (raw_voltage - 2.25f) * 5.0f;
 	float real_voltage = (pure_voltage * myCalData.v_gain[ch]) + myCalData.v_offset[ch];
 
-    printf("CH%d Measure Voltage: %.4f V\r\n", ch, real_voltage);
+    //printf("CH%d Measure Voltage: %.4f V\r\n", ch, real_voltage);
     latestData.voltage[ch]= real_voltage;
 }
-
-
 
 void PMU::MeasureCurrent(int ch) {
     AD5522::Channel dac_ch = (AD5522::Channel)(1 << ch);
@@ -211,13 +240,41 @@ void PMU::MeasureCurrent(int ch) {
 		calculated_current = current_uA_raw * myCalData.i_gain[ch] + myCalData.i_offset[ch];
 	}
 
-    printf("CH%d Measure Current: %.3f uA\r\n", ch, calculated_current);
+    //printf("CH%d Measure Current: %.3f uA\r\n", ch, calculated_current);
     latestData.current[ch] = calculated_current;
 }
 
+// 비상 상황 발생 시, 딜레이 및 모드 변경 없이 4개 채널을 즉시 읽어서 latestData 업데이트
+void PMU::EmergencyMeasureAll() {
+	for (int ch = 0; ch < 4; ch++) {
+		float raw_voltage = ADC_IC.GetVolt(ch);
+		float pure_v = raw_voltage - 2.25f;
 
+		if (current_measure_mode[ch] == AD5522::MV_MODE) {
+			float pure_voltage = pure_v * 5.0f;
+			float real_voltage = (pure_voltage * myCalData.v_gain[ch]) + myCalData.v_offset[ch];
+			latestData.voltage[ch] = real_voltage;
+		}
+		else {
+			AD5522::CurrentRange current_range = current_state_range[ch];
+			float range_resistance = GetRangeResistance(current_range);
+			float current_uA_raw = (pure_v / (range_resistance * 2.0f)) * 1000000.0f;
+			float calculated_current = current_uA_raw * myCalData.i_gain[ch] + myCalData.i_offset[ch];
+			latestData.current[ch] = calculated_current;
+		}
+	}
+}
 
 // 4개 채널 모두 출력 즉시 차단
 void PMU::Emergency_Stop() {
 	PMU_IC.SetChannelMode(AD5522::ALL, false, AD5522::FV_MODE, AD5522::RANGE_2mA, AD5522::MI_MODE);
+}
+
+bool PMU::SaveCalibrationToEEPROM() {
+    if (myEEPROM.SaveCalibration(&myCalData)) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
