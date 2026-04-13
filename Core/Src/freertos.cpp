@@ -229,6 +229,14 @@ void StartPMU_Task(void *argument)
 				case CMD_SAVE_CALIBRATION:
 				    mySystem.SaveCalibrationToEEPROM();
 				    break;
+
+				case CMD_SET_CFF:
+				    mySystem.SetCFF(order.channel, order.mux_val);
+				    break;
+
+				case CMD_SET_CCOMP:
+				    mySystem.SetCCOMP(order.channel, order.mux_val);
+				    break;
 			}
 			// 명령을 수행할 때마다 UART 로깅창(uartQueue)으로 최신 상태 업데이트
 			osMessageQueuePut(uartQueueHandle, &mySystem.latestData, 0, 0);
@@ -296,14 +304,12 @@ void ProcessCommand(const char* cmdBuffer) {
 
 	PMU_CmdPacket_t order;
 
-
 	if (strcmp(cmdBuffer, "stop") == 0) {
 		order.cmd_type = CMD_EMERGENCY_STOP;
 		osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
 		printf("\r\n[WARNING] EMERGENCY STOP!\r\n");
 		return;
 	}
-
 
 	if (sscanf(cmdBuffer, "%s %d %f", cmdStr, &ch, &val) >= 2) {
 		if (ch < 0 || ch > 3) {
@@ -355,7 +361,30 @@ void ProcessCommand(const char* cmdBuffer) {
 
 			printf("CH%d Die Temp: %.1f C\r\n", ch, mySystem.latestData.temp[ch]);
 		}
+		else if (strcmp(cmdStr, "cff") == 0) {
+            int mux_v = (int)val;
+            if (mux_v < 0 || mux_v > 3) {
+                printf("\r\n[ERROR] MUX Value must be 0~3\r\n");
+                return;
+            }
 
+            order.cmd_type = CMD_SET_CFF; order.channel = ch; order.mux_val = mux_v;
+            osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
+
+            printf("\r\n[OK] CH%d CFF Set to MUX_%d\r\n", ch, mux_v);
+        }
+        else if (strcmp(cmdStr, "comp") == 0) {
+            int mux_v = (int)val;
+            if (mux_v < 0 || mux_v > 3) {
+                printf("\r\n[ERROR] MUX Value must be 0~3\r\n");
+                return;
+            }
+
+            order.cmd_type = CMD_SET_CCOMP; order.channel = ch; order.mux_val = mux_v;
+            osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
+
+            printf("\r\n[OK] CH%d CCOMP Set to MUX_%d\r\n", ch, mux_v);
+        }
 
 		else {
 			printf("\r\n[ERROR] Unknown Command: %s\r\n", cmdStr);

@@ -278,3 +278,51 @@ bool PMU::SaveCalibrationToEEPROM() {
         return false;
     }
 }
+
+const MuxPins_t PMU::CFF_Pins[4] = {
+		{CFF0_A0_GPIO_Port, CFF0_A0_Pin, CFF0_A1_GPIO_Port, CFF0_A1_Pin, CFF0_EN_GPIO_Port, CFF0_EN_Pin},
+		{CFF1_A0_GPIO_Port, CFF1_A0_Pin, CFF1_A1_GPIO_Port, CFF1_A1_Pin, CFF1_EN_GPIO_Port, CFF1_EN_Pin},
+		{CFF2_A0_GPIO_Port, CFF2_A0_Pin, CFF2_A1_GPIO_Port, CFF2_A1_Pin, CFF2_EN_GPIO_Port, CFF2_EN_Pin},
+		{CFF3_A0_GPIO_Port, CFF3_A0_Pin, CFF3_A1_GPIO_Port, CFF3_A1_Pin, CFF3_EN_GPIO_Port, CFF3_EN_Pin}
+};
+
+const MuxPins_t PMU::CCOMP_Pins[4] = {
+
+		{CCOMP0_A0_GPIO_Port, CCOMP0_A0_Pin, CCOMP0_A1_GPIO_Port, CCOMP0_A1_Pin, CCOMP0_EN_GPIO_Port, CCOMP0_EN_Pin},
+		{CCOMP1_A0_GPIO_Port, CCOMP1_A0_Pin, CCOMP1_A1_GPIO_Port, CCOMP1_A1_Pin, CCOMP1_EN_GPIO_Port, CCOMP1_EN_Pin},
+		{CCOMP2_A0_GPIO_Port, CCOMP2_A0_Pin, CCOMP2_A1_GPIO_Port, CCOMP2_A1_Pin, CCOMP2_EN_GPIO_Port, CCOMP2_EN_Pin},
+		{CCOMP3_A0_GPIO_Port, CCOMP3_A0_Pin, CCOMP3_A1_GPIO_Port, CCOMP3_A1_Pin, CCOMP3_EN_GPIO_Port, CCOMP3_EN_Pin}
+};
+
+// [2] CFF 제어 함수 구현
+void PMU::SetCFF(uint8_t ch, uint8_t val) {
+    if (ch > 3 || val > 3) return; // 채널 0~3, 값 0~3(A1, A0) 예외 처리
+
+    // 1단계: 안전을 위해 MUX를 먼저 끕니다. (글리치 방지)
+    HAL_GPIO_WritePin(CFF_Pins[ch].EN_Port, CFF_Pins[ch].EN_Pin, GPIO_PIN_RESET);
+
+    // 2단계: val 값(0~3)에 따라 A0, A1 핀 설정
+    GPIO_PinState a0_state = (val & 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET; // 1번 비트
+    GPIO_PinState a1_state = (val & 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET; // 2번 비트
+
+    HAL_GPIO_WritePin(CFF_Pins[ch].A0_Port, CFF_Pins[ch].A0_Pin, a0_state);
+    HAL_GPIO_WritePin(CFF_Pins[ch].A1_Port, CFF_Pins[ch].A1_Pin, a1_state);
+
+    // 3단계: MUX 켜기
+    HAL_GPIO_WritePin(CFF_Pins[ch].EN_Port, CFF_Pins[ch].EN_Pin, GPIO_PIN_SET);
+}
+
+// [3] CCOMP 제어 함수 구현 (CFF와 로직은 100% 동일합니다)
+void PMU::SetCCOMP(uint8_t ch, uint8_t val) {
+    if (ch > 3 || val > 3) return;
+
+    HAL_GPIO_WritePin(CCOMP_Pins[ch].EN_Port, CCOMP_Pins[ch].EN_Pin, GPIO_PIN_RESET);
+
+    GPIO_PinState a0_state = (val & 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET;
+    GPIO_PinState a1_state = (val & 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET;
+
+    HAL_GPIO_WritePin(CCOMP_Pins[ch].A0_Port, CCOMP_Pins[ch].A0_Pin, a0_state);
+    HAL_GPIO_WritePin(CCOMP_Pins[ch].A1_Port, CCOMP_Pins[ch].A1_Pin, a1_state);
+
+    HAL_GPIO_WritePin(CCOMP_Pins[ch].EN_Port, CCOMP_Pins[ch].EN_Pin, GPIO_PIN_SET);
+}

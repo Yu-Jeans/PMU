@@ -37,14 +37,23 @@ typedef enum {
     CMD_MEAS_CURRENT,
 	CMD_MEAS_TEMP,
     CMD_EMERGENCY_STOP,
-	CMD_SAVE_CALIBRATION
+	CMD_SAVE_CALIBRATION,
+    CMD_SET_CFF,
+    CMD_SET_CCOMP
 } PMU_CmdType_t;
 
 typedef struct {
     PMU_CmdType_t cmd_type;
     uint8_t channel;
     float value;
+    uint8_t mux_val;
 } PMU_CmdPacket_t;
+
+typedef struct {
+    GPIO_TypeDef* A0_Port; uint16_t A0_Pin;
+    GPIO_TypeDef* A1_Port; uint16_t A1_Pin;
+    GPIO_TypeDef* EN_Port; uint16_t EN_Pin;
+} MuxPins_t;
 
 class PMU{
 private:
@@ -56,6 +65,8 @@ private:
 	AD5522::CurrentRange current_state_range[4];
 	AD5522::ForceMode    current_force_mode[4];
     AD5522::MeasureMode  current_measure_mode[4];
+    static const MuxPins_t CFF_Pins[4];
+    static const MuxPins_t CCOMP_Pins[4];
 public:
 	PMU(SPI_HandleTypeDef* hspi_adc, GPIO_TypeDef* csPort_adc, uint16_t csPin_adc,
 		SPI_HandleTypeDef* hspi_pmu,
@@ -79,5 +90,7 @@ public:
 	void Emergency_Stop();
 	void EmergencyMeasureAll();
 	bool SaveCalibrationToEEPROM();
+	void SetCFF(uint8_t ch, uint8_t val);
+	void SetCCOMP(uint8_t ch, uint8_t val);
 };
 #endif /* INC_PMU_H_ */

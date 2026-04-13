@@ -48,6 +48,7 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
@@ -58,8 +59,8 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOF, CFF0_A1_Pin|CFF0_A0_Pin|CFF0_EN_Pin|CCOMP2_A0_Pin
-                          |CCOMP2_A1_Pin|CCOMP2_EN_Pin|CCOM0P_A0_Pin|CCOM0P_A1_Pin
-                          |CCOM0P_EN_Pin|CFF2_A0_Pin|CFF2_A1_Pin, GPIO_PIN_RESET);
+                          |CCOMP2_A1_Pin|CCOMP2_EN_Pin|CCOMP0_A0_Pin|CCOMP0_A1_Pin
+                          |CCOMP0_EN_Pin|CFF2_A0_Pin|CFF2_A1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(EEP_WP_GPIO_Port, EEP_WP_Pin, GPIO_PIN_SET);
@@ -79,7 +80,7 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, CCOMP3_A1_Pin|CCOMP3_A0_Pin|CCOMP1_EN_Pin|CCOMP1_A0_Pin
-                          |CCOMP3_EN_Pin|CCOM1P_A1_Pin, GPIO_PIN_RESET);
+                          |CCOMP3_EN_Pin|CCOMP1_A1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : USB_OTG_HS_ULPI_RSTN_Pin */
   GPIO_InitStruct.Pin = USB_OTG_HS_ULPI_RSTN_Pin;
@@ -89,11 +90,11 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(USB_OTG_HS_ULPI_RSTN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : CFF0_A1_Pin CFF0_A0_Pin CFF0_EN_Pin CCOMP2_A0_Pin
-                           CCOMP2_A1_Pin CCOMP2_EN_Pin CCOM0P_A0_Pin CCOM0P_A1_Pin
-                           CCOM0P_EN_Pin CFF2_A0_Pin CFF2_A1_Pin EEP_WP_Pin */
+                           CCOMP2_A1_Pin CCOMP2_EN_Pin CCOMP0_A0_Pin CCOMP0_A1_Pin
+                           CCOMP0_EN_Pin CFF2_A0_Pin CFF2_A1_Pin EEP_WP_Pin */
   GPIO_InitStruct.Pin = CFF0_A1_Pin|CFF0_A0_Pin|CFF0_EN_Pin|CCOMP2_A0_Pin
-                          |CCOMP2_A1_Pin|CCOMP2_EN_Pin|CCOM0P_A0_Pin|CCOM0P_A1_Pin
-                          |CCOM0P_EN_Pin|CFF2_A0_Pin|CFF2_A1_Pin|EEP_WP_Pin;
+                          |CCOMP2_A1_Pin|CCOMP2_EN_Pin|CCOMP0_A0_Pin|CCOMP0_A1_Pin
+                          |CCOMP0_EN_Pin|CFF2_A0_Pin|CFF2_A1_Pin|EEP_WP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -150,9 +151,9 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(ADC_DONEn_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : CCOMP3_A1_Pin CCOMP3_A0_Pin CCOMP1_EN_Pin CCOMP1_A0_Pin
-                           CCOMP3_EN_Pin CCOM1P_A1_Pin */
+                           CCOMP3_EN_Pin CCOMP1_A1_Pin */
   GPIO_InitStruct.Pin = CCOMP3_A1_Pin|CCOMP3_A0_Pin|CCOMP1_EN_Pin|CCOMP1_A0_Pin
-                          |CCOMP3_EN_Pin|CCOM1P_A1_Pin;
+                          |CCOMP3_EN_Pin|CCOMP1_A1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
