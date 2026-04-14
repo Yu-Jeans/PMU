@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include "Logger.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,6 +45,33 @@ extern "C" {
 }
 
 extern PMU mySystem;
+
+
+struct CommandDef {
+    const char* cmd_str;
+    uint8_t cmd_type;
+    int required_args;
+};
+
+static const CommandDef cmdDict[] = {
+    {"stop",     CMD_EMERGENCY_STOP,   0},
+    {"save_cal", CMD_SAVE_CALIBRATION, 0},
+    {"fv",       CMD_FORCE_VOLTAGE,    2},
+    {"fi",       CMD_FORCE_CURRENT,    2},
+    {"hzv",      CMD_HIGH_Z_V,         1},
+    {"hzi",      CMD_HIGH_Z_I,         1},
+    {"mv",       CMD_MEAS_VOLTAGE,     1},
+    {"mi",       CMD_MEAS_CURRENT,     1},
+    {"mt",       CMD_MEAS_TEMP,        1},
+    {"tune",     CMD_TUNE_DYNAMIC,     1},
+    {"cff",      CMD_SET_CFF,          2},
+    {"comp",     CMD_SET_CCOMP,        2},
+    {"set_vcal", 0xFF,                 3},
+    {"set_ical", 0xFF,                 3},
+    {"set_prot", 0xFF,                 2}
+};
+
+static const int NUM_CMDS = sizeof(cmdDict) / sizeof(CommandDef);
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -230,6 +258,11 @@ void StartPMU_Task(void *argument)
 				    mySystem.SaveCalibrationToEEPROM();
 				    break;
 
+				case CMD_TUNE_DYNAMIC:
+					mySystem.TuneDynamicOffset(order.channel);
+					xTaskNotifyGive((TaskHandle_t)commandTaskHandle);
+					break;
+
 				case CMD_SET_CFF:
 				    mySystem.SetCFF(order.channel, order.mux_val);
 				    break;
@@ -297,101 +330,129 @@ void StartUartLoggingTask(void *argument)
   /* USER CODE END StartUartLoggingTask */
 }
 
+
 void ProcessCommand(const char* cmdBuffer) {
-    char cmdStr[4];
-    int ch;
-    float val = 0.0f;
+    char cmdStr[16] = {0};
+    int ch = -1;
+    float v1 = 0.0f, v2 = 0.0f;
 
-	PMU_CmdPacket_t order;
+    int parsed = sscanf(cmdBuffer, "%15s %d %f %f", cmdStr, &ch, &v1, &v2);
 
-	if (strcmp(cmdBuffer, "stop") == 0) {
-		order.cmd_type = CMD_EMERGENCY_STOP;
-		osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
-		printf("\r\n[WARNING] EMERGENCY STOP!\r\n");
+    if (parsed < 1){
+    	return;
+    }
+
+    for(int i = 0; cmdStr[i]; i++) cmdStr[i] = tolower(cmdStr[i]);
+
+    const CommandDef* matchedCmd = NULL;
+    for (int i = 0; i < NUM_CMDS; i++) {
+        if (strcmp(cmdStr, cmdDict[i].cmd_str) == 0) {
+            matchedCmd = &cmdDict[i];
+            break;
+        }
+    }
+
+    if (!matchedCmd) {
+        LOG_E("Unknown Command: %s\r\n", cmdStr);
+        return;
+    }
+
+    if (parsed < matchedCmd->required_args + 1) {
+        LOG_E("'%s' requires %d arguments.\r\n", matchedCmd->cmd_str, matchedCmd->required_args);
+        return;
+    }
+
+    if (matchedCmd->required_args > 0 && (ch < 0 || ch > 3)) {
+        LOG_E("Invalid Channel (0~3)\r\n");
+        return;
+    }
+
+    if (strcmp(cmdStr, "set_vcal") == 0) {
+        mySystem.SetStaticCalV(ch, v1, v2);
+        LOG_I("CH%d Static V_CAL Updated (Offset:%.3f, Gain:%.3f)\r\n", ch, v1, v2);
+        return;
+    }
+    if (strcmp(cmdStr, "set_ical") == 0) {
+        mySystem.SetStaticCalI(ch, v1, v2);
+        LOG_I("CH%d Static I_CAL Updated (Offset:%.3f, Gain:%.3f)\r\n", ch, v1, v2);
+        return;
+    }
+    if (strcmp(cmdStr, "set_prot") == 0) {
+		char bin1[9] = {0}; // CPOLH 문자열 담을 곳
+		char bin2[9] = {0}; // CL 문자열 담을 곳
+
+		if (sscanf(cmdBuffer, "%*s %8s %8s", bin1, bin2) == 2) {
+
+			int cpolh = strtol(bin1, NULL, 2);
+			int cl = strtol(bin2, NULL, 2);
+
+			mySystem.SetProtection(cpolh, cl);
+
+			LOG_I("System Protection Updated (CPOLH: %04ld, CL: %04ld)\r\n",
+				  strtol(bin1, NULL, 10), strtol(bin2, NULL, 10));
+		} else {
+			LOG_E("Format: set_prot <cpolh_bits> <cl_bits> (ex: set_prot 1111 1111)\r\n");
+		}
 		return;
 	}
 
-	if (sscanf(cmdBuffer, "%s %d %f", cmdStr, &ch, &val) >= 2) {
-		if (ch < 0 || ch > 3) {
-			printf("\r\n[ERROR] Invalid Channel (0~3)\r\n");
-			return;
-		}
+    PMU_CmdPacket_t order;
+    order.cmd_type = (PMU_CmdType_t)matchedCmd->cmd_type;
+    order.channel = ch;
+    order.value = v1;
+    order.mux_val = (int)v1;
 
-		for(int i = 0; cmdStr[i]; i++) cmdStr[i] = tolower(cmdStr[i]);
+    osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
 
-		if (strcmp(cmdStr, "fv") == 0) {
-			order.cmd_type = CMD_FORCE_VOLTAGE; order.channel = ch; order.value = val;
-			osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
-			printf("\r\n[OK] CH%d FV -> %.3f V\r\n", ch, val);
-		}
-		else if (strcmp(cmdStr, "fi") == 0) {
-			order.cmd_type = CMD_FORCE_CURRENT; order.channel = ch; order.value = val;
-			osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
-			printf("\r\n[OK] CH%d FI -> %.1f uA\r\n", ch, val);
-		}
-		else if (strcmp(cmdStr, "hzv") == 0) {
-		    order.cmd_type = CMD_HIGH_Z_V;
-		    order.channel = ch;
-		    osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
-		    printf("\r\n[OK] CH%d -> HIGH-Z (Voltage Preload) Mode\r\n", ch);
-		}
-		else if (strcmp(cmdStr, "hzi") == 0) {
-		    order.cmd_type = CMD_HIGH_Z_I;
-		    order.channel = ch;
-		    osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
-		    printf("\r\n[OK] CH%d -> HIGH-Z (Current Preload) Mode\r\n", ch);
-		}
-		else if (strcmp(cmdStr, "mv") == 0) {
-			order.cmd_type = CMD_MEAS_VOLTAGE; order.channel = ch;
-			osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
-			ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-			printf("\r\n[MEAS] CH%d MV: %.4f V\r\n", ch, mySystem.latestData.voltage[ch]);
-		}
-		else if (strcmp(cmdStr, "mi") == 0) {
-			order.cmd_type = CMD_MEAS_CURRENT; order.channel = ch;
-			osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
-			ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-			printf("\r\n[MEAS] CH%d MI: %.3f uA\r\n", ch, mySystem.latestData.current[ch]);
-		}
-		else if (strcmp(cmdStr, "mt") == 0) {
-		    order.cmd_type = CMD_MEAS_TEMP;
-		    order.channel = ch;
-		    osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
-		    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    if (order.cmd_type == CMD_EMERGENCY_STOP) {
+        LOG_W("EMERGENCY STOP!\r\n");
+    }
+    else if (order.cmd_type == CMD_SAVE_CALIBRATION) {
+        LOG_I("Calibration Data Saved to EEPROM Successfully!\r\n");
+    }
 
-			printf("CH%d Die Temp: %.1f C\r\n", ch, mySystem.latestData.temp[ch]);
+    else if (order.cmd_type == CMD_MEAS_VOLTAGE || order.cmd_type == CMD_MEAS_CURRENT ||
+             order.cmd_type == CMD_MEAS_TEMP || order.cmd_type == CMD_TUNE_DYNAMIC)
+    {
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+        if (order.cmd_type == CMD_MEAS_VOLTAGE) {
+			LOG_I("CH%d MV: %.4f V\r\n", ch, mySystem.latestData.voltage[ch]);
 		}
-		else if (strcmp(cmdStr, "cff") == 0) {
-            int mux_v = (int)val;
-            if (mux_v < 0 || mux_v > 3) {
-                printf("\r\n[ERROR] MUX Value must be 0~3\r\n");
-                return;
+		else if (order.cmd_type == CMD_MEAS_CURRENT) {
+			LOG_I("CH%d MI: %.3f uA\r\n", ch, mySystem.latestData.current[ch]);
+		}
+		else if (order.cmd_type == CMD_MEAS_TEMP) {
+			LOG_I("CH%d MT: %.1f C\r\n", ch, mySystem.latestData.temp[ch]);
+		}
+        else if (order.cmd_type == CMD_TUNE_DYNAMIC) {
+            if (mySystem.current_force_mode[ch] == AD5522::FV_MODE){
+            	LOG_I("CH%d Tuned! New MV: %.4f V\r\n", ch, mySystem.latestData.voltage[ch]);
             }
-
-            order.cmd_type = CMD_SET_CFF; order.channel = ch; order.mux_val = mux_v;
-            osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
-
-            printf("\r\n[OK] CH%d CFF Set to MUX_%d\r\n", ch, mux_v);
-        }
-        else if (strcmp(cmdStr, "comp") == 0) {
-            int mux_v = (int)val;
-            if (mux_v < 0 || mux_v > 3) {
-                printf("\r\n[ERROR] MUX Value must be 0~3\r\n");
-                return;
+            else{
+            	LOG_I("CH%d Tuned! New MI: %.3f uA\r\n", ch, mySystem.latestData.current[ch]);
             }
-
-            order.cmd_type = CMD_SET_CCOMP; order.channel = ch; order.mux_val = mux_v;
-            osMessageQueuePut(pmuCmdQueueHandle, &order, 0, portMAX_DELAY);
-
-            printf("\r\n[OK] CH%d CCOMP Set to MUX_%d\r\n", ch, mux_v);
         }
-
-		else {
-			printf("\r\n[ERROR] Unknown Command: %s\r\n", cmdStr);
+    }
+    else {
+    	if (order.cmd_type == CMD_FORCE_VOLTAGE){
+    		LOG_I("CH%d FV: %.3f V\r\n", ch, v1);
+    	}
+		else if (order.cmd_type == CMD_FORCE_CURRENT){
+			LOG_I("CH%d FI: %.1f uA\r\n", ch, v1);
 		}
-	}
-	else {
-		printf("\r\n[ERROR] Invalid Format (ex: FV 0 5.0)\r\n");
+		else if (order.cmd_type == CMD_HIGH_Z_V){
+			LOG_I("CH%d HZV: OK\r\n", ch);
+		}
+		else if (order.cmd_type == CMD_HIGH_Z_I){
+			LOG_I("CH%d HZI: OK\r\n", ch);
+		}
+		else if (order.cmd_type == CMD_SET_CFF){
+			LOG_I("CH%d CFF: MUX_%d\r\n", ch, (int)v1);
+		}
+		else if (order.cmd_type == CMD_SET_CCOMP){
+			LOG_I("CH%d COMP: MUX_%d\r\n", ch, (int)v1);
+		}
 	}
 }
 
@@ -404,7 +465,9 @@ void StartCommandTask(void *argument)
     uint8_t index = 0;
     uint8_t rxData;
 
-    printf("\r\n=== PMU USB Command Mode ===\r\nPMU> ");
+    LOG_I("\r\n=== PMU USB Command Mode ===\r\n");
+
+    printf("PMU> ");
 
     for(;;)
     {
@@ -417,9 +480,12 @@ void StartCommandTask(void *argument)
                 if (index > 0) {
                     rxBuffer[index] = '\0'; // 문자열 닫기
 
+                    printf("\r\n");
+
                     ProcessCommand(rxBuffer);
 
                     index = 0; // 버퍼 비우기
+
                     printf("PMU> "); // 다음 입력 대기
                 }
             }
@@ -452,6 +518,7 @@ void StartADC_Task(void *argument)
 	  // 인터럽트가 최신화한 비교기 상태를 확인
 	  if (mySystem.latestData.comparator_status != 0) {
 		  // 값 즉시 업데이트
+		  mySystem.Emergency_Stop();
 		  mySystem.EmergencyMeasureAll();
 		  // 상태가 정상이 아닐 때만 로그 창(uartQueue)으로 데이터 강제 전송
 		  osMessageQueuePut(uartQueueHandle, &mySystem.latestData, 0, 0);

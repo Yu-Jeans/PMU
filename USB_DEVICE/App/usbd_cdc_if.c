@@ -292,7 +292,6 @@ static int8_t CDC_Receive_HS(uint8_t* Buf, uint32_t *Len)
 		  osMessageQueuePut(usbRxQueueHandle, &Buf[i], 0, 0);
 	  }
   }
-
   USBD_CDC_SetRxBuffer(&hUsbDeviceHS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceHS);
   return (USBD_OK);
@@ -319,7 +318,6 @@ uint8_t CDC_Transmit_HS(uint8_t* Buf, uint16_t Len)
   /* USER CODE END 12 */
   return result;
 }
-
 /**
   * @brief  CDC_TransmitCplt_HS
   *         Data transmitted callback

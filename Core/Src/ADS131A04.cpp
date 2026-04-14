@@ -50,15 +50,15 @@ bool ADS131A04IPBSR::Init()
 
     if((frame_data[0] & 0xFF000000) == 0xFF000000)
     {
-        uint8_t device_id = (frame_data[0] >> 16) & 0xFF;
-        printf("ADS131A04 Ready! Device ID: 0x%02X\r\n", device_id);
+        //uint8_t device_id = (frame_data[0] >> 16) & 0xFF;
+        //printf("ADS131A04 Ready! Device ID: 0x%02X\r\n", device_id);
 
         Send_UNLOCK();
         return true;
     }
     else
     {
-        printf("ADS131A04 Init Failed. Rx: 0x%08lX\r\n", frame_data[0]);
+        //printf("ADS131A04 Init Failed. Rx: 0x%08lX\r\n", frame_data[0]);
         return false;
     }
 }

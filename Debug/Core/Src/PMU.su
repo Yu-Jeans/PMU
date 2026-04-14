@@ -1,15 +1,20 @@
-../Core/Src/PMU.cpp:11:1:PMU::PMU(SPI_HandleTypeDef*, GPIO_TypeDef*, uint16_t, SPI_HandleTypeDef*, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, I2C_HandleTypeDef*, uint16_t)	48	static
-../Core/Src/PMU.cpp:25:1:PMU::~PMU()	16	static
-../Core/Src/PMU.cpp:28:6:bool PMU::Init()	40	static
-../Core/Src/PMU.cpp:92:7:float PMU::GetRangeResistance(AD5522::CurrentRange)	16	static
-../Core/Src/PMU.cpp:103:6:void PMU::SetOutputVoltage(int, float)	40	static
-../Core/Src/PMU.cpp:116:6:void PMU::SetOutputCurrent(int, float)	48	static
-../Core/Src/PMU.cpp:145:6:void PMU::SetHighZ(int, AD5522::ForceMode)	40	static
-../Core/Src/PMU.cpp:156:6:void PMU::MeasureTemp(int)	56	static
-../Core/Src/PMU.cpp:178:6:void PMU::MeasureVolt(int)	48	static
-../Core/Src/PMU.cpp:195:6:void PMU::MeasureCurrent(int)	72	static
-../Core/Src/PMU.cpp:248:6:void PMU::EmergencyMeasureAll()	56	static
-../Core/Src/PMU.cpp:269:6:void PMU::Emergency_Stop()	24	static
-../Core/Src/PMU.cpp:273:6:bool PMU::SaveCalibrationToEEPROM()	16	static
-../Core/Src/PMU.cpp:298:6:void PMU::SetCFF(uint8_t, uint8_t)	24	static
-../Core/Src/PMU.cpp:316:6:void PMU::SetCCOMP(uint8_t, uint8_t)	24	static
+../Core/Src/PMU.cpp:14:1:PMU::PMU(SPI_HandleTypeDef*, GPIO_TypeDef*, uint16_t, SPI_HandleTypeDef*, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, I2C_HandleTypeDef*, uint16_t)	48	static
+../Core/Src/PMU.cpp:28:1:PMU::~PMU()	16	static
+../Core/Src/PMU.cpp:31:6:bool PMU::Init()	48	static
+../Core/Src/PMU.cpp:104:7:float PMU::GetRangeResistance(AD5522::CurrentRange)	16	static
+../Core/Src/PMU.cpp:115:6:void PMU::SetOutputVoltage(int, float)	40	static
+../Core/Src/PMU.cpp:130:6:void PMU::SetOutputCurrent(int, float)	48	static
+../Core/Src/PMU.cpp:161:6:void PMU::SetHighZ(int, AD5522::ForceMode)	40	static
+../Core/Src/PMU.cpp:172:6:void PMU::MeasureTemp(int)	56	static
+../Core/Src/PMU.cpp:192:6:void PMU::MeasureVolt(int)	48	static
+../Core/Src/PMU.cpp:208:6:void PMU::MeasureCurrent(int)	72	static
+../Core/Src/PMU.cpp:259:6:void PMU::EmergencyMeasureAll()	56	static
+../Core/Src/PMU.cpp:280:6:void PMU::Emergency_Stop()	24	static
+../Core/Src/PMU.cpp:284:6:bool PMU::SaveCalibrationToEEPROM()	16	static
+../Core/Src/PMU.cpp:293:6:void PMU::TuneDynamicOffset(int)	32	static
+../Core/Src/PMU.cpp:315:6:void PMU::ResetDynamicOffset(int)	16	static
+../Core/Src/PMU.cpp:320:6:void PMU::SetStaticCalV(int, float, float)	24	static
+../Core/Src/PMU.cpp:325:6:void PMU::SetStaticCalI(int, float, float)	24	static
+../Core/Src/PMU.cpp:347:6:void PMU::SetCFF(uint8_t, uint8_t)	24	static
+../Core/Src/PMU.cpp:365:6:void PMU::SetCCOMP(uint8_t, uint8_t)	24	static
+../Core/Src/PMU.cpp:379:6:void PMU::SetProtection(uint8_t, uint8_t)	16	static

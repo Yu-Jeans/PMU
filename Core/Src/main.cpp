@@ -263,17 +263,33 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		return;
 	}
 
-    // ADC DONE 인터럽트
-    if (GPIO_Pin == ADC_DONEn_Pin) {
-    	uint8_t comparator_mask = 0;
+	bool is_comparator_exti = false;
+	    for (int i = 0; i < 8; i++) {
+	        if (GPIO_Pin == Comparator_PINS[i].pin) {
+	            is_comparator_exti = true;
+	            break;
+	        }
+	    }
 
-    	for (int i = 0; i < 8; i++) {
+	if (is_comparator_exti) {
+		uint8_t comparator_mask = 0;
+		for (int i = 0; i < 8; i++) {
 			if (HAL_GPIO_ReadPin(Comparator_PINS[i].port, Comparator_PINS[i].pin) != Comparator_PINS[i].normal) {
-				comparator_mask |= (1 << i); // 문제가 있는 비트만 1로 셋 (Bit 0: CH0_HI, Bit 1: CH0_LO...)
+				comparator_mask |= (1 << i);
 			}
 		}
-    	mySystem.latestData.comparator_status = comparator_mask;
+		mySystem.latestData.comparator_status = comparator_mask;
 
+		// ADC_Task를 깨워서 Emergency_Stop과 로그 출력을 하게 함
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		vTaskNotifyGiveFromISR((TaskHandle_t)ADC_TaskHandle, &xHigherPriorityTaskWoken);
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+
+		return; // 처리 끝났으니 돌아감
+	}
+
+    // ADC DONE 인터럽트
+    if (GPIO_Pin == ADC_DONEn_Pin) {
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         vTaskNotifyGiveFromISR((TaskHandle_t)ADC_TaskHandle, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);

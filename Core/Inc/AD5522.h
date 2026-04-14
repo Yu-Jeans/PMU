@@ -62,6 +62,7 @@ public:
 			GPIO_TypeDef* resetP, uint16_t resetN);
 
     bool Init();
+	void SetSystemDefault(uint8_t cpolh_mask, uint8_t cl_mask);
 
     void SetChannelMode(uint8_t ch_mask, bool enable, ForceMode f_mode, CurrentRange range, MeasureMode m_mode);
 	void SetForceValue(Channel ch, uint8_t range_bits, float value);
@@ -75,7 +76,6 @@ private:
 	GPIO_TypeDef *loadPort;  uint16_t loadPin;
 	GPIO_TypeDef *resetPort; uint16_t resetPin;
 
-	void SetSystemDefault();
 	void Write29Bits(uint32_t data);
 	void WriteDAC(Channel ch, DAC_Type type, uint8_t range_bits, uint16_t dac_code);
 

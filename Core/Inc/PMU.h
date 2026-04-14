@@ -38,6 +38,7 @@ typedef enum {
 	CMD_MEAS_TEMP,
     CMD_EMERGENCY_STOP,
 	CMD_SAVE_CALIBRATION,
+	CMD_TUNE_DYNAMIC,
     CMD_SET_CFF,
     CMD_SET_CCOMP
 } PMU_CmdType_t;
@@ -62,11 +63,14 @@ private:
 	EEPROM24FC064  myEEPROM;
 	CalibrationData_t myCalData;
 
-	AD5522::CurrentRange current_state_range[4];
-	AD5522::ForceMode    current_force_mode[4];
-    AD5522::MeasureMode  current_measure_mode[4];
     static const MuxPins_t CFF_Pins[4];
     static const MuxPins_t CCOMP_Pins[4];
+
+    float target_v[4] = {0.0f, };
+	float target_i[4] = {0.0f, };
+	float dynamic_v_offset[4] = {0.0f, };
+	float dynamic_i_offset[4] = {0.0f, };
+
 public:
 	PMU(SPI_HandleTypeDef* hspi_adc, GPIO_TypeDef* csPort_adc, uint16_t csPin_adc,
 		SPI_HandleTypeDef* hspi_pmu,
@@ -77,20 +81,37 @@ public:
 		I2C_HandleTypeDef* hi2c_eeprom, uint16_t addr_eeprom);
 	~PMU();
 
+	AD5522::CurrentRange current_state_range[4];
+	AD5522::ForceMode    current_force_mode[4];
+    AD5522::MeasureMode  current_measure_mode[4];
+
 	PMU_Data_t latestData;
 	bool Init();
 	void Loop();
+
 	float GetRangeResistance(AD5522::CurrentRange range);
+
 	void SetOutputVoltage(int ch, float target_volt);
 	void SetOutputCurrent(int ch, float current_uA);
+
 	void SetHighZ(int ch, AD5522::ForceMode hz_mode);
+
 	void MeasureVolt(int ch);
 	void MeasureCurrent(int ch);
 	void MeasureTemp(int ch);
+
 	void Emergency_Stop();
 	void EmergencyMeasureAll();
+
 	bool SaveCalibrationToEEPROM();
+	void TuneDynamicOffset(int ch);
+	void ResetDynamicOffset(int ch);
+	void SetStaticCalV(int ch, float offset, float gain);
+    void SetStaticCalI(int ch, float offset, float gain);
+
 	void SetCFF(uint8_t ch, uint8_t val);
 	void SetCCOMP(uint8_t ch, uint8_t val);
+
+	void SetProtection(uint8_t cpolh_mask, uint8_t cl_mask);
 };
 #endif /* INC_PMU_H_ */

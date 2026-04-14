@@ -7,6 +7,9 @@
 
 #include "PMU.h"
 #include "cmsis_os2.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "Logger.h"
 
 PMU::PMU(SPI_HandleTypeDef* hspi_adc, GPIO_TypeDef* csPort_adc, uint16_t csPin_adc,
 
@@ -31,27 +34,35 @@ bool PMU::Init() {
     // EEPROM 초기화 (myEEPROM)
     if (myEEPROM.Init()) {
 		if (myEEPROM.LoadCalibration(&myCalData)) {
-			printf("PMU: EEPROM Calibration Data Loaded!\r\n");
-		} else {
-			// 하드웨어는 정상이나, 내부에 저장된 캘리브레이션 데이터가 없거나 깨진 경우
-			printf("PMU: [FATAL] EEPROM Calibration Data Load Failed!\r\n");
-			success = false;
+			LOG_I("PMU: EEPROM Calibration Data Loaded!\r\n");
+
+			if (myCalData.v_gain[0] < 0.5f || myCalData.v_gain[0] > 2.0f) {
+				LOG_W("PMU: EEPROM is Empty. Setting Default!\r\n");
+
+				for(int i=0; i<4; i++) {
+					myCalData.v_offset[i] = 0.0f; // 오차 없음
+					myCalData.v_gain[i] = 1.0f;   // 비율 1:1
+					myCalData.i_offset[i] = 0.0f;
+					myCalData.i_gain[i] = 1.0f;
+				}
+			}
 		}
-	} else {
+    }
+	else {
 		// EEPROM 칩 자체가 응답하지 않는 경우
-		printf("PMU: [FATAL] EEPROM Hardware Init Failed!\r\n");
+		LOG_E("PMU: EEPROM Hardware Init Failed!\r\n");
 		success = false;
-	}
+    }
 
     // ADC 초기화 (ADC_IC)
     if (!ADC_IC.Init()) {
-        printf("PMU: ADC(ADS131A04) Hardware Init Failed!\r\n");
+    	LOG_E("PMU: [FATAL] ADC Hardware Init Failed!\r\n");
         success = false;
     }
 
     // AD5522 초기화 (PMU_IC)
     if (!PMU_IC.Init()) {
-        printf("PMU: DAC(AD5522) Hardware Init Failed!\r\n");
+    	LOG_E("PMU: [FATAL] AD5522 Hardware Init Failed!\r\n");
         success = false;
     }
 	// PMU 안전 한계선(Clamp, Comparator) 및 초기값 설정
@@ -80,9 +91,9 @@ bool PMU::Init() {
 
     // 칩들이 깨어난 후 PMU 차원의 추가 설정
     if (success) {
-		printf("PMU: Initialization Complete. System Online.\r\n");
+    	LOG_I("PMU: Initialization Complete. System Online.\r\n");
 	} else {
-		printf("PMU: Initialization Failed. System Halted.\r\n");
+		LOG_E("PMU: Initialization Failed. System Halted.\r\n");
 	}
     return success;
 }
@@ -103,7 +114,9 @@ float PMU::GetRangeResistance(AD5522::CurrentRange range) {
 void PMU::SetOutputVoltage(int ch, float target_volt) {
     AD5522::Channel dac_ch = (AD5522::Channel)(1 << ch);
 
-	float calibrated_volt = (target_volt - myCalData.v_offset[ch]) / myCalData.v_gain[ch];
+    target_v[ch] = target_volt;
+
+	float calibrated_volt = (target_volt - myCalData.v_offset[ch] - dynamic_v_offset[ch]) / myCalData.v_gain[ch];
 
 	PMU_IC.SetChannelMode(dac_ch, true, AD5522::FV_MODE, AD5522::RANGE_2mA, current_measure_mode[ch]);
     PMU_IC.SetForceValue(dac_ch, 0b101, calibrated_volt);
@@ -115,6 +128,8 @@ void PMU::SetOutputVoltage(int ch, float target_volt) {
 
 void PMU::SetOutputCurrent(int ch, float target_current_uA) {
     AD5522::Channel dac_ch = (AD5522::Channel)(1 << ch);
+
+    target_i[ch] = target_current_uA;
 
 	AD5522::CurrentRange auto_range;
 
@@ -129,11 +144,11 @@ void PMU::SetOutputCurrent(int ch, float target_current_uA) {
 	} else if (abs_current <= 2000.0f) {
 		auto_range = AD5522::RANGE_2mA;
 	} else {
-		printf("\r\n[ERROR] CH%d Current out of limit (Max 2mA)\r\n", ch);
+		LOG_E("\r\n[ERROR] CH%d Current out of limit (Max 2mA)\r\n", ch);
 		return;
 	}
 
-    float calibrated_current = (target_current_uA - myCalData.i_offset[ch]) / myCalData.i_gain[ch];
+    float calibrated_current = (target_current_uA - myCalData.i_offset[ch] - dynamic_i_offset[ch]) / myCalData.i_gain[ch];
 
     PMU_IC.SetChannelMode(dac_ch, true, AD5522::FI_MODE, auto_range, current_measure_mode[ch]);
     PMU_IC.SetForceValue(dac_ch, auto_range, calibrated_current);
@@ -170,8 +185,6 @@ void PMU::MeasureTemp(int ch) {
 
 	float die_temp_C = ((pure_v - v_at_25c) / v_per_c) + 25.0f;
 
-	//printf("CH%d Die Temp: %.1f C (Raw: %.4f V)\r\n", ch, die_temp_C, pure_v);
-
     latestData.temp[ch] = die_temp_C;
 } //130도 넘으면 Shutdown되므로, 130 이상이 나오면 오류
 
@@ -188,7 +201,6 @@ void PMU::MeasureVolt(int ch) {
 	float pure_voltage = (raw_voltage - 2.25f) * 5.0f;
 	float real_voltage = (pure_voltage * myCalData.v_gain[ch]) + myCalData.v_offset[ch];
 
-    //printf("CH%d Measure Voltage: %.4f V\r\n", ch, real_voltage);
     latestData.voltage[ch]= real_voltage;
 }
 
@@ -239,8 +251,6 @@ void PMU::MeasureCurrent(int ch) {
 		current_uA_raw = (pure_v / (range_resistance * 2.0f)) * 1000000.0f;
 		calculated_current = current_uA_raw * myCalData.i_gain[ch] + myCalData.i_offset[ch];
 	}
-
-    //printf("CH%d Measure Current: %.3f uA\r\n", ch, calculated_current);
     latestData.current[ch] = calculated_current;
 }
 
@@ -278,6 +288,44 @@ bool PMU::SaveCalibrationToEEPROM() {
         return false;
     }
 }
+
+void PMU::TuneDynamicOffset(int ch) {
+    osDelay(pdMS_TO_TICKS(50));
+
+    if (current_force_mode[ch] == AD5522::FV_MODE) {
+        MeasureVolt(ch);
+        float measured = latestData.voltage[ch];
+        float error = target_v[ch] - measured;
+
+        dynamic_v_offset[ch] += (error * 0.5f);
+
+        SetOutputVoltage(ch, target_v[ch]);
+    }
+    else if (current_force_mode[ch] == AD5522::FI_MODE) {
+        MeasureCurrent(ch);
+        float measured = latestData.current[ch];
+        float error = target_i[ch] - measured;
+
+        dynamic_i_offset[ch] += (error * 0.5f);
+        SetOutputCurrent(ch, target_i[ch]);
+    }
+}
+
+void PMU::ResetDynamicOffset(int ch) {
+    dynamic_v_offset[ch] = 0.0f;
+    dynamic_i_offset[ch] = 0.0f;
+}
+
+void PMU::SetStaticCalV(int ch, float offset, float gain) {
+    myCalData.v_offset[ch] = offset;
+    myCalData.v_gain[ch] = gain;
+}
+
+void PMU::SetStaticCalI(int ch, float offset, float gain) {
+    myCalData.i_offset[ch] = offset;
+    myCalData.i_gain[ch] = gain;
+}
+
 
 const MuxPins_t PMU::CFF_Pins[4] = {
 		{CFF0_A0_GPIO_Port, CFF0_A0_Pin, CFF0_A1_GPIO_Port, CFF0_A1_Pin, CFF0_EN_GPIO_Port, CFF0_EN_Pin},
@@ -325,4 +373,8 @@ void PMU::SetCCOMP(uint8_t ch, uint8_t val) {
     HAL_GPIO_WritePin(CCOMP_Pins[ch].A1_Port, CCOMP_Pins[ch].A1_Pin, a1_state);
 
     HAL_GPIO_WritePin(CCOMP_Pins[ch].EN_Port, CCOMP_Pins[ch].EN_Pin, GPIO_PIN_SET);
+}
+
+void PMU::SetProtection(uint8_t cpolh_mask, uint8_t cl_mask) {
+    PMU_IC.SetSystemDefault(cpolh_mask, cl_mask);
 }

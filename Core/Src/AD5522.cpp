@@ -39,12 +39,12 @@ bool AD5522::Init() {
             return false; // 10ms가 지나도 안 깨어나면 회로 단락 등 하드웨어 에러
         }
     }
-    SetSystemDefault();
+    SetSystemDefault(0x0F, 0x0F);
     return true;
 }
 
 // System Control Register 기본 세팅
-void AD5522::SetSystemDefault() {
+void AD5522::SetSystemDefault(uint8_t cpolh_mask, uint8_t cl_mask) {
     uint32_t reg = 0;
 
     // 주소 비트 (B27 ~ B22) : 000000 (System Control Register 선택)
@@ -57,7 +57,10 @@ void AD5522::SetSystemDefault() {
     reg |= (1 << 10); // CLAMP ALM: 클램프 작동 시 CGALM 핀으로 알람 출력
     reg |= (1 << 11); // GUARD ALM: 가드 에러 시 CGALM 핀으로 알람 출력
 
-    Write29Bits(reg);
+    reg |= (uint32_t)(cpolh_mask & 0x0F) << 18; // CPOLH 3~0
+	reg |= (uint32_t)(cl_mask & 0x0F) << 14;    // CL 3~0
+
+	Write29Bits(reg);
 }
 
 // =========================================================================
@@ -90,7 +93,6 @@ void AD5522::SetChannelMode(uint8_t ch_mask, bool enable, ForceMode f_mode, Curr
     reg |= (1 << 12); // FIN : DAC 신호를 내부 Amp에 연결 (필수)
     reg |= (1 << 9);  // CL : 이 채널의 클램프 보호 기능 활성화 (안전 필수)
     reg |= (1 << 8);
-    // (비교기, Clear 등 나머지는 일단 0으로 둠)
 
     // 칩으로 전송
     Write29Bits(reg);
